@@ -1,0 +1,57 @@
+{
+    "name": "dashed/dashed-ai",
+    "description": "AI adapter system for Dashed CMS",
+    "keywords": ["Dashed", "laravel", "dashed-ai", "ai", "adapter"],
+    "homepage": "https://github.com/Dashed-DEV/dashed-ai",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Robin van Maasakker",
+            "email": "robin@dashed.nl",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "dashed/dashed-core": "*",
+        "spatie/laravel-package-tools": "^1.16"
+    },
+    "require-dev": {
+        "filament/upgrade": "^4.0",
+        "friendsofphp/php-cs-fixer": "^3.63",
+        "orchestra/testbench": "^9",
+        "pestphp/pest": "^3.5",
+        "pestphp/pest-plugin-laravel": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Dashed\\DashedAi\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Dashed\\DashedAi\\Tests\\": "tests"
+        }
+    },
+    "scripts": {
+        "test": "vendor/bin/pest"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Dashed\\DashedAi\\DashedAiServiceProvider"
+            ],
+            "aliases": {
+                "Ai": "Dashed\\DashedAi\\Facades\\Ai"
+            }
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
