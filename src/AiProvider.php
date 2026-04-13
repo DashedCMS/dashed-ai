@@ -52,10 +52,22 @@ abstract class AiProvider
 
     protected function buildSystemPrompt(array $options = []): string
     {
-        $brandContext = Customsetting::get('ai_brand_context', null, '');
+        $brandStory = Customsetting::get('ai_brand_story', null, '');
+        $writingStyle = Customsetting::get('ai_writing_style', null, '');
         $system = $options['system'] ?? '';
 
-        return trim(($brandContext ? $brandContext . "\n\n" : '') . $system);
+        $parts = [];
+        if ($brandStory) {
+            $parts[] = "## Merkverhaal\n" . $brandStory;
+        }
+        if ($writingStyle) {
+            $parts[] = "## Schrijfstijl\n" . $writingStyle;
+        }
+        if ($system) {
+            $parts[] = $system;
+        }
+
+        return trim(implode("\n\n", $parts));
     }
 
     protected function parseJsonResponse(?string $text): ?array

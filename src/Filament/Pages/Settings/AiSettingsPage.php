@@ -9,6 +9,7 @@ use Dashed\DashedAi\AiManager;
 use Dashed\DashedAi\Facades\Ai;
 use Dashed\DashedCore\Classes\Sites;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Dashed\DashedAi\Enums\AiCapability;
 use Filament\Forms\Components\Textarea;
@@ -19,7 +20,7 @@ use Dashed\DashedCore\Models\Customsetting;
 use Filament\Infolists\Components\TextEntry;
 use Dashed\DashedCore\Traits\HasSettingsPermission;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
-use Dashed\DashedCore\Classes\WebsiteContentCollector;
+use Dashed\DashedAi\Jobs\GenerateBrandContextJob;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
 
@@ -40,8 +41,10 @@ class AiSettingsPage extends Page implements HasSchemas
     {
         $formData = [
             'ai_default_provider' => Customsetting::get('ai_default_provider'),
-            'ai_brand_context' => Customsetting::get('ai_brand_context'),
+            'ai_brand_story' => Customsetting::get('ai_brand_story'),
+            'ai_writing_style' => Customsetting::get('ai_writing_style'),
             'create_alt_text_for_new_uploaded_images' => Customsetting::get('create_alt_text_for_new_uploaded_images'),
+            'fal_api_key' => Customsetting::get('fal_api_key'),
         ];
 
         $manager = app(AiManager::class);
@@ -67,21 +70,37 @@ class AiSettingsPage extends Page implements HasSchemas
 
         $sections = [
             Section::make('Algemeen')
-                ->description('Kies de standaard AI provider en definieer het merkverhaal dat als context wordt meegegeven bij elke AI-aanroep.')
+                ->description('Kies de standaard AI provider en definieer het merkverhaal en de schrijfstijl die als context worden meegegeven bij elke AI-aanroep.')
                 ->schema([
                     Select::make('ai_default_provider')
                         ->label('Standaard AI provider')
                         ->options($providerOptions)
                         ->placeholder('Automatisch (eerste beschikbare)')
                         ->helperText('Als deze niet beschikbaar is, wordt automatisch een andere verbonden provider gebruikt.'),
-                    Textarea::make('ai_brand_context')
-                        ->label('Merkverhaal en schrijfstijl')
-                        ->helperText('Beschrijf je merk, producten/diensten, doelgroep en schrijfstijl. Dit wordt als system prompt meegegeven bij elke AI-aanroep.')
-                        ->rows(8)
-                        ->placeholder("Bijv: Dashed is een Nederlands bureau dat maatwerk Laravel-websites en webshops bouwt voor het MKB. Schrijf in informeel Nederlands, enthousiast en persoonlijk. Gebruik geen EM-dashes of stijve bijvoeglijke naamwoorden."),
+                    Textarea::make('ai_brand_story')
+                        ->label('Merkverhaal')
+                        ->helperText('Beschrijf wat je merk doet, welke producten of diensten je aanbiedt, voor wie, en wat je onderscheidt. Dit wordt bij elke AI-aanroep meegegeven als context.')
+                        ->rows(6)
+                        ->placeholder('Bijv: Dashed is een Nederlands bureau dat maatwerk Laravel-websites en webshops bouwt voor het MKB. We combineren techniek en design om bedrijven online te laten groeien.'),
+                    Textarea::make('ai_writing_style')
+                        ->label('Schrijfstijl')
+                        ->helperText('Beschrijf hoe er geschreven moet worden: toon, formaliteit, zinslengte, humor, vaktaal, woorden die wel/niet passen. Dit wordt bij elke AI-aanroep meegegeven.')
+                        ->rows(6)
+                        ->placeholder('Bijv: Informeel Nederlands, enthousiast en persoonlijk. Korte zinnen, directe aanspreekvorm (je/jij). Geen EM-dashes, geen stijve corporate taal, geen overdreven superlatieven.'),
                     Toggle::make('create_alt_text_for_new_uploaded_images')
                         ->label('Automatisch alt-teksten genereren voor nieuwe uploads')
                         ->helperText('Gebruikt de vision-capability van de actieve AI provider. Werkt alleen voor Nederlands.'),
+                ]),
+
+            Section::make('Afbeelding generatie (Fal.ai)')
+                ->description('Zodra hier een Fal.ai API sleutel staat, verschijnt er bij elk afbeelding-veld in de CMS een "Genereer met AI" knop. Met een referentieafbeelding wordt nano-banana/edit gebruikt, zonder referentie flux/dev.')
+                ->schema([
+                    TextInput::make('fal_api_key')
+                        ->label('Fal.ai API sleutel')
+                        ->password()
+                        ->revealable()
+                        ->helperText('Je vindt je API sleutel op fal.ai → API Keys.')
+                        ->placeholder('fal_...'),
                 ]),
         ];
 
@@ -117,8 +136,10 @@ class AiSettingsPage extends Page implements HasSchemas
 
         foreach (Sites::getSites() as $site) {
             Customsetting::set('ai_default_provider', $formData['ai_default_provider'] ?? null, $site['id']);
-            Customsetting::set('ai_brand_context', $formData['ai_brand_context'] ?? null, $site['id']);
+            Customsetting::set('ai_brand_story', $formData['ai_brand_story'] ?? null, $site['id']);
+            Customsetting::set('ai_writing_style', $formData['ai_writing_style'] ?? null, $site['id']);
             Customsetting::set('create_alt_text_for_new_uploaded_images', $formData['create_alt_text_for_new_uploaded_images'] ?? false, $site['id']);
+            Customsetting::set('fal_api_key', $formData['fal_api_key'] ?? null, $site['id']);
 
             foreach ($manager->providers() as $provider) {
                 foreach ($provider->settingsSchema() as $component) {
@@ -144,62 +165,22 @@ class AiSettingsPage extends Page implements HasSchemas
     {
         return [
             Action::make('generateBrandContext')
-                ->label('Genereer merkverhaal automatisch')
+                ->label('Genereer merkverhaal & schrijfstijl')
                 ->icon('heroicon-o-sparkles')
                 ->color('primary')
                 ->visible(fn () => Ai::hasProvider())
                 ->requiresConfirmation()
-                ->modalHeading('Merkverhaal automatisch genereren')
-                ->modalDescription('AI analyseert de huidige website-inhoud en genereert automatisch een merkverhaal en schrijfstijl. Bestaande waarde wordt overschreven.')
-                ->modalSubmitActionLabel('Genereer')
+                ->modalHeading('Merkverhaal & schrijfstijl automatisch genereren')
+                ->modalDescription('AI analyseert de huidige website-inhoud en genereert een merkverhaal en schrijfstijl. Dit gebeurt op de achtergrond — je krijgt een notificatie als het klaar is. Bestaande waarden worden overschreven.')
+                ->modalSubmitActionLabel('Start genereren')
                 ->action(function (): void {
-                    $siteName = Customsetting::get('site_name') ?: config('app.name');
-                    $samples = WebsiteContentCollector::collect();
-
-                    if (! $samples) {
-                        Notification::make()
-                            ->title('Geen website-inhoud gevonden')
-                            ->body('Er zijn nog geen pagina\'s met metadata om van te analyseren.')
-                            ->warning()
-                            ->send();
-
-                        return;
-                    }
-
-                    $prompt = <<<PROMPT
-                    Analyseer de onderstaande paginatitels en beschrijvingen van de website "{$siteName}" en schrijf één samenhangend merkverhaal van 5-8 zinnen. Beschrijf wat het bedrijf doet, welke producten/diensten ze aanbieden, voor wie, en op welke toon en schrijfstijl er geschreven moet worden (gebaseerd op de toon die al gebruikt wordt in de teksten).
-
-                    HUIDIGE PAGINA-INHOUD:
-                    {$samples}
-
-                    Retourneer UITSLUITEND geldig JSON in dit formaat (geen markdown):
-                    {
-                      "brand_context": "..."
-                    }
-                    PROMPT;
-
-                    $result = Ai::json($prompt);
-
-                    if (! $result || empty($result['brand_context'])) {
-                        Notification::make()
-                            ->title('Genereren mislukt')
-                            ->body('De AI provider gaf geen bruikbaar antwoord.')
-                            ->danger()
-                            ->send();
-
-                        return;
-                    }
-
-                    foreach (Sites::getSites() as $site) {
-                        Customsetting::set('ai_brand_context', $result['brand_context'], $site['id']);
-                    }
+                    GenerateBrandContextJob::dispatch(auth()->id());
 
                     Notification::make()
-                        ->title('Merkverhaal gegenereerd')
+                        ->title('Generatie gestart')
+                        ->body('De AI analyseert je website op de achtergrond. Je krijgt een notificatie zodra het klaar is.')
                         ->success()
                         ->send();
-
-                    redirect(AiSettingsPage::getUrl());
                 }),
 
             Action::make('generateAltTextForAllImages')
