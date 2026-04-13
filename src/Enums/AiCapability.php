@@ -8,4 +8,5 @@ enum AiCapability: string
     case Json = 'json';
     case Vision = 'vision';
     case Image = 'image';
+    case Embedding = 'embedding';
 }

@@ -55,6 +55,17 @@ class AiManager
         return $this->default(AiCapability::Image)?->image($prompt, $options);
     }
 
+    public function embed(string $text, array $options = []): array
+    {
+        $provider = $this->default(AiCapability::Embedding);
+
+        if (! $provider) {
+            return [];
+        }
+
+        return $provider->embed($text, $options);
+    }
+
     /**
      * @return array<string, AiProvider>
      */
