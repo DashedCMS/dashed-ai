@@ -25,6 +25,17 @@ abstract class AiProvider
     abstract public function image(string $prompt, array $options = []): ?string;
 
     /**
+     * Generate an embedding vector for the given text.
+     *
+     * @param  string  $text
+     * @param  array  $options
+     * @return array<int, float>
+     *
+     * @throws \Dashed\DashedAi\Exceptions\EmbeddingNotSupportedException
+     */
+    abstract public function embed(string $text, array $options = []): array;
+
+    /**
      * Filament form components for this provider's settings, rendered on the
      * central AiSettingsPage.
      *
