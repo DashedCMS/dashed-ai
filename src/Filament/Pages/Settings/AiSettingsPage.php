@@ -9,18 +9,18 @@ use Dashed\DashedAi\AiManager;
 use Dashed\DashedAi\Facades\Ai;
 use Dashed\DashedCore\Classes\Sites;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Dashed\DashedAi\Enums\AiCapability;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Contracts\HasSchemas;
 use Dashed\DashedCore\Models\Customsetting;
 use Filament\Infolists\Components\TextEntry;
+use Dashed\DashedAi\Jobs\GenerateBrandContextJob;
 use Dashed\DashedCore\Traits\HasSettingsPermission;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
-use Dashed\DashedAi\Jobs\GenerateBrandContextJob;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
 
@@ -118,7 +118,7 @@ class AiSettingsPage extends Page implements HasSchemas
                     ->color($connected ? 'success' : 'danger'),
                 TextEntry::make('capabilities_' . $provider->name())
                     ->label('Ondersteunde capabilities')
-                    ->state($capabilities ?: '—'),
+                    ->state($capabilities ?: '-'),
             ], $provider->settingsSchema());
 
             $sections[] = Section::make($provider->label())
@@ -171,7 +171,7 @@ class AiSettingsPage extends Page implements HasSchemas
                 ->visible(fn () => Ai::hasProvider())
                 ->requiresConfirmation()
                 ->modalHeading('Merkverhaal & schrijfstijl automatisch genereren')
-                ->modalDescription('AI analyseert de huidige website-inhoud en genereert een merkverhaal en schrijfstijl. Dit gebeurt op de achtergrond — je krijgt een notificatie als het klaar is. Bestaande waarden worden overschreven.')
+                ->modalDescription('AI analyseert de huidige website-inhoud en genereert een merkverhaal en schrijfstijl. Dit gebeurt op de achtergrond - je krijgt een notificatie als het klaar is. Bestaande waarden worden overschreven.')
                 ->modalSubmitActionLabel('Start genereren')
                 ->action(function (): void {
                     GenerateBrandContextJob::dispatch(auth()->id());

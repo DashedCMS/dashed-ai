@@ -2,19 +2,19 @@
 
 namespace Dashed\DashedAi\Jobs;
 
-use Dashed\DashedAi\Facades\Ai;
-use Dashed\DashedCore\Classes\Sites;
-use Dashed\DashedCore\Classes\WebsiteContentCollector;
-use Dashed\DashedCore\Models\Customsetting;
-use Dashed\DashedCore\Models\User;
-use Filament\Notifications\Notification;
+use Throwable;
 use Illuminate\Bus\Queueable;
+use Dashed\DashedAi\Facades\Ai;
+use Dashed\DashedCore\Models\User;
+use Illuminate\Support\Facades\Log;
+use Dashed\DashedCore\Classes\Sites;
+use Illuminate\Queue\SerializesModels;
+use Filament\Notifications\Notification;
+use Illuminate\Queue\InteractsWithQueue;
+use Dashed\DashedCore\Models\Customsetting;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
-use Throwable;
+use Dashed\DashedCore\Classes\WebsiteContentCollector;
 
 class GenerateBrandContextJob implements ShouldQueue
 {
@@ -27,7 +27,8 @@ class GenerateBrandContextJob implements ShouldQueue
 
     public function __construct(
         public ?int $userId = null,
-    ) {}
+    ) {
+    }
 
     public function handle(): void
     {
@@ -48,7 +49,7 @@ class GenerateBrandContextJob implements ShouldQueue
         Analyseer de onderstaande paginatitels en beschrijvingen van de website "{$siteName}" en genereer twee samenhangende stukken tekst:
 
         1. **Merkverhaal** (5-8 zinnen): Beschrijf wat het bedrijf doet, welke producten of diensten ze aanbieden, voor wie ze dat doen en wat ze onderscheidt. Dit is het "wat en waarom" van het merk.
-        2. **Schrijfstijl** (3-6 zinnen): Beschrijf concreet hoe er geschreven moet worden — toon, formaliteit, zinslengte, gebruik van humor, vaktaal, woorden die wel/niet passen bij het merk. Baseer dit op de toon die al gebruikt wordt in de bestaande teksten. Dit is de "hoe" van het schrijven.
+        2. **Schrijfstijl** (3-6 zinnen): Beschrijf concreet hoe er geschreven moet worden - toon, formaliteit, zinslengte, gebruik van humor, vaktaal, woorden die wel/niet passen bij het merk. Baseer dit op de toon die al gebruikt wordt in de bestaande teksten. Dit is de "hoe" van het schrijven.
 
         Beide stukken zijn bedoeld als context voor AI die namens dit merk content genereert, dus schrijf praktisch en direct bruikbaar.
 
