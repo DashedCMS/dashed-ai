@@ -54,6 +54,12 @@ abstract class AiProvider
         $system = $options['system'] ?? '';
 
         $parts = [];
+        $parts[] = "## Globale regels\n".
+            "- Gebruik NOOIT em-dashes (—). Gebruik een punt, komma of haakjes.\n".
+            "- Gebruik geen AI-clichés (\"duik in\", \"ontdek de geheimen\", \"in een notendop\").\n".
+            "- Schrijf actief en in de \"je\"-vorm.\n".
+            "- Wanneer een JSON-antwoord wordt gevraagd met HTML erin: gebruik ENKELE quotes voor HTML-attributen (bijv. <a href='/url'>) zodat de JSON valide blijft.\n".
+            "- Retourneer bij JSON-verzoeken UITSLUITEND geldig JSON zonder markdown code fences.";
         if ($brandStory) {
             $parts[] = "## Merkverhaal\n".$brandStory;
         }
