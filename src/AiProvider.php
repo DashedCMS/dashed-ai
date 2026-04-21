@@ -3,6 +3,7 @@
 namespace Dashed\DashedAi;
 
 use Dashed\DashedAi\Enums\AiCapability;
+use Dashed\DashedAi\Exceptions\EmbeddingNotSupportedException;
 use Dashed\DashedCore\Models\Customsetting;
 
 abstract class AiProvider
@@ -27,19 +28,15 @@ abstract class AiProvider
     /**
      * Generate an embedding vector for the given text.
      *
-     * @param  string  $text
-     * @param  array  $options
      * @return array<int, float>
      *
-     * @throws \Dashed\DashedAi\Exceptions\EmbeddingNotSupportedException
+     * @throws EmbeddingNotSupportedException
      */
     abstract public function embed(string $text, array $options = []): array;
 
     /**
      * Filament form components for this provider's settings, rendered on the
      * central AiSettingsPage.
-     *
-     * @return array
      */
     abstract public function settingsSchema(): array;
 
@@ -58,10 +55,10 @@ abstract class AiProvider
 
         $parts = [];
         if ($brandStory) {
-            $parts[] = "## Merkverhaal\n" . $brandStory;
+            $parts[] = "## Merkverhaal\n".$brandStory;
         }
         if ($writingStyle) {
-            $parts[] = "## Schrijfstijl\n" . $writingStyle;
+            $parts[] = "## Schrijfstijl\n".$writingStyle;
         }
         if ($system) {
             $parts[] = $system;
@@ -76,14 +73,98 @@ abstract class AiProvider
             return null;
         }
 
-        $clean = preg_replace('/^\s*```(?:json)?\s*/i', '', trim($text));
-        $clean = preg_replace('/\s*```\s*$/', '', $clean);
+        $text = trim($text);
 
-        $decoded = json_decode(trim($clean), true);
-        if ($decoded === null && preg_match('/(\{[\s\S]*\}|\[[\s\S]*\])/u', $clean, $matches)) {
-            $decoded = json_decode($matches[1], true);
+        // First: try decoding as-is (happy path when provider returns clean JSON).
+        $decoded = json_decode($text, true);
+        if (is_array($decoded)) {
+            return $decoded;
         }
 
-        return $decoded;
+        // Strip fenced code blocks anywhere in the text: ```json ... ``` or ``` ... ```.
+        // We pull out the contents of the first fenced block if present.
+        if (preg_match('/```(?:json)?\s*([\s\S]*?)```/i', $text, $fenceMatch)) {
+            $candidate = trim($fenceMatch[1]);
+            $decoded = json_decode($candidate, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        // Strip leading/trailing fences if the regex above didn't match a paired block.
+        $clean = preg_replace('/^\s*```(?:json)?\s*/i', '', $text);
+        $clean = preg_replace('/\s*```\s*$/', '', $clean);
+        $clean = trim($clean);
+        $decoded = json_decode($clean, true);
+        if (is_array($decoded)) {
+            return $decoded;
+        }
+
+        // Last resort: find the outermost { ... } or [ ... ] block using balanced search.
+        $candidate = $this->extractBalancedJson($clean);
+        if ($candidate !== null) {
+            $decoded = json_decode($candidate, true);
+            if (is_array($decoded)) {
+                return $decoded;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractBalancedJson(string $text): ?string
+    {
+        $len = strlen($text);
+        $start = null;
+        $openChar = null;
+        $closeChar = null;
+        for ($i = 0; $i < $len; $i++) {
+            $ch = $text[$i];
+            if ($ch === '{' || $ch === '[') {
+                $start = $i;
+                $openChar = $ch;
+                $closeChar = $ch === '{' ? '}' : ']';
+                break;
+            }
+        }
+        if ($start === null) {
+            return null;
+        }
+
+        $depth = 0;
+        $inString = false;
+        $escape = false;
+        for ($i = $start; $i < $len; $i++) {
+            $ch = $text[$i];
+            if ($escape) {
+                $escape = false;
+
+                continue;
+            }
+            if ($inString) {
+                if ($ch === '\\') {
+                    $escape = true;
+                } elseif ($ch === '"') {
+                    $inString = false;
+                }
+
+                continue;
+            }
+            if ($ch === '"') {
+                $inString = true;
+
+                continue;
+            }
+            if ($ch === $openChar) {
+                $depth++;
+            } elseif ($ch === $closeChar) {
+                $depth--;
+                if ($depth === 0) {
+                    return substr($text, $start, $i - $start + 1);
+                }
+            }
+        }
+
+        return null;
     }
 }

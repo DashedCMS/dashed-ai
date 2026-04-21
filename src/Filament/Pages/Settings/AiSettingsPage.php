@@ -2,26 +2,26 @@
 
 namespace Dashed\DashedAi\Filament\Pages\Settings;
 
-use Filament\Pages\Page;
-use Filament\Actions\Action;
-use Filament\Schemas\Schema;
 use Dashed\DashedAi\AiManager;
-use Dashed\DashedAi\Facades\Ai;
-use Dashed\DashedCore\Classes\Sites;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Toggle;
 use Dashed\DashedAi\Enums\AiCapability;
+use Dashed\DashedAi\Facades\Ai;
+use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
+use Dashed\DashedAi\Jobs\GenerateBrandContextJob;
+use Dashed\DashedCore\Classes\Sites;
+use Dashed\DashedCore\Models\Customsetting;
+use Dashed\DashedCore\Traits\HasSettingsPermission;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Notifications\Notification;
-use Filament\Schemas\Components\Section;
-use Filament\Schemas\Contracts\HasSchemas;
-use Dashed\DashedCore\Models\Customsetting;
+use Filament\Forms\Components\Toggle;
 use Filament\Infolists\Components\TextEntry;
-use Dashed\DashedAi\Jobs\GenerateBrandContextJob;
-use Dashed\DashedCore\Traits\HasSettingsPermission;
+use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
-use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Schemas\Schema;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
 
 class AiSettingsPage extends Page implements HasSchemas
@@ -111,12 +111,12 @@ class AiSettingsPage extends Page implements HasSchemas
                 ->join(', ');
 
             $providerSchema = array_merge([
-                TextEntry::make('connection_status_' . $provider->name())
+                TextEntry::make('connection_status_'.$provider->name())
                     ->label('Status')
-                    ->state($provider->label() . ' is ' . ($connected ? 'verbonden' : 'niet verbonden'))
+                    ->state($provider->label().' is '.($connected ? 'verbonden' : 'niet verbonden'))
                     ->badge()
                     ->color($connected ? 'success' : 'danger'),
-                TextEntry::make('capabilities_' . $provider->name())
+                TextEntry::make('capabilities_'.$provider->name())
                     ->label('Ondersteunde capabilities')
                     ->state($capabilities ?: '-'),
             ], $provider->settingsSchema());
@@ -149,7 +149,7 @@ class AiSettingsPage extends Page implements HasSchemas
                     }
                 }
 
-                cache()->forget('ai_connected_' . $provider->name());
+                cache()->forget('ai_connected_'.$provider->name());
             }
         }
 

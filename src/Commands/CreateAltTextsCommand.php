@@ -2,8 +2,8 @@
 
 namespace Dashed\DashedAi\Commands;
 
-use Illuminate\Console\Command;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
+use Illuminate\Console\Command;
 
 class CreateAltTextsCommand extends Command
 {

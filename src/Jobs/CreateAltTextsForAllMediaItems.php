@@ -2,14 +2,14 @@
 
 namespace Dashed\DashedAi\Jobs;
 
-use Illuminate\Bus\Queueable;
-use Dashed\DashedAi\Facades\Ai;
-use Illuminate\Queue\SerializesModels;
 use Dashed\DashedAi\Enums\AiCapability;
-use Illuminate\Queue\InteractsWithQueue;
+use Dashed\DashedAi\Facades\Ai;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Contracts\Queue\ShouldBeUnique;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
 
 class CreateAltTextsForAllMediaItems implements ShouldBeUnique, ShouldQueue
@@ -23,9 +23,7 @@ class CreateAltTextsForAllMediaItems implements ShouldBeUnique, ShouldQueue
 
     public $uniqueFor = 1200;
 
-    public function __construct(public bool $overwriteExisting = false)
-    {
-    }
+    public function __construct(public bool $overwriteExisting = false) {}
 
     public function uniqueId(): string
     {

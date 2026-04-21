@@ -2,8 +2,9 @@
 
 namespace Dashed\DashedAi;
 
-use Spatie\LaravelPackageTools\Package;
 use Dashed\DashedAi\Commands\CreateAltTextsCommand;
+use Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage;
+use Spatie\LaravelPackageTools\Package;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
 
 class DashedAiServiceProvider extends PackageServiceProvider
@@ -22,24 +23,24 @@ class DashedAiServiceProvider extends PackageServiceProvider
 
     public function registeringPackage(): void
     {
-        $this->app->singleton(AiManager::class, fn () => new AiManager());
+        $this->app->singleton(AiManager::class, fn () => new AiManager);
     }
 
     public function bootingPackage(): void
     {
         cms()->builder('plugins', [
-            new DashedAiPlugin(),
+            new DashedAiPlugin,
         ]);
 
         cms()->registerSettingsPage(
-            \Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage::class,
+            AiSettingsPage::class,
             'AI',
             'sparkles',
             'AI providers, merkverhaal en schrijfstijl'
         );
 
         cms()->registerSettingsDocs(
-            page: \Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage::class,
+            page: AiSettingsPage::class,
             title: 'AI instellingen',
             intro: 'Op deze pagina configureer je hoe AI in jouw omgeving werkt. Je kiest een standaard AI provider, beschrijft je merkverhaal en schrijfstijl en koppelt FAL.ai voor beelden. Ook zet je in dat alt-teksten voor nieuwe afbeeldingen automatisch worden gegenereerd. Per geactiveerde AI provider verschijnen hieronder bovendien de bijbehorende API credentials.',
             sections: [
@@ -58,7 +59,7 @@ MARKDOWN,
                 ],
                 [
                     'heading' => 'Hoe koppel je een AI provider?',
-                    'body' => <<<MARKDOWN
+                    'body' => <<<'MARKDOWN'
 1. Maak een account aan bij de provider van je keuze (bijvoorbeeld OpenAI of Anthropic).
 2. Ga in het dashboard van die provider naar de sectie voor API keys.
 3. Maak een nieuwe sleutel aan en kopieer hem direct, vaak kun je hem later niet meer inzien.
