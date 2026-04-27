@@ -49,22 +49,25 @@ abstract class AiProvider
 
     protected function buildSystemPrompt(array $options = []): string
     {
-        $brandStory = Customsetting::get('ai_brand_story', null, '');
-        $writingStyle = Customsetting::get('ai_writing_style', null, '');
+        $disableBrandRules = (bool) ($options['disable_brand_rules'] ?? false);
+        $brandStory = $options['brand_story'] ?? Customsetting::get('ai_brand_story', null, '');
+        $writingStyle = $options['writing_style'] ?? Customsetting::get('ai_writing_style', null, '');
         $system = $options['system'] ?? '';
 
         $parts = [];
-        $parts[] = "## Globale regels\n".
-            "- Gebruik NOOIT em-dashes (—). Gebruik een punt, komma of haakjes.\n".
-            "- Gebruik geen AI-clichés (\"duik in\", \"ontdek de geheimen\", \"in een notendop\").\n".
-            "- Schrijf actief en in de \"je\"-vorm.\n".
-            "- Wanneer een JSON-antwoord wordt gevraagd met HTML erin: gebruik ENKELE quotes voor HTML-attributen (bijv. <a href='/url'>) zodat de JSON valide blijft.\n".
-            "- Retourneer bij JSON-verzoeken UITSLUITEND geldig JSON zonder markdown code fences.";
-        if ($brandStory) {
-            $parts[] = "## Merkverhaal\n".$brandStory;
-        }
-        if ($writingStyle) {
-            $parts[] = "## Schrijfstijl\n".$writingStyle;
+        if (! $disableBrandRules) {
+            $parts[] = "## Globale regels\n".
+                "- Gebruik NOOIT em-dashes (—). Gebruik een punt, komma of haakjes.\n".
+                "- Gebruik geen AI-clichés (\"duik in\", \"ontdek de geheimen\", \"in een notendop\").\n".
+                "- Schrijf actief en in de \"je\"-vorm.\n".
+                "- Wanneer een JSON-antwoord wordt gevraagd met HTML erin: gebruik ENKELE quotes voor HTML-attributen (bijv. <a href='/url'>) zodat de JSON valide blijft.\n".
+                "- Retourneer bij JSON-verzoeken UITSLUITEND geldig JSON zonder markdown code fences.";
+            if ($brandStory) {
+                $parts[] = "## Merkverhaal\n".$brandStory;
+            }
+            if ($writingStyle) {
+                $parts[] = "## Schrijfstijl\n".$writingStyle;
+            }
         }
         if ($system) {
             $parts[] = $system;
