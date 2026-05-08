@@ -2,12 +2,12 @@
 
 namespace Dashed\DashedAi\Jobs;
 
-use Dashed\DashedAi\Facades\Ai;
 use Illuminate\Bus\Queueable;
+use Dashed\DashedAi\Facades\Ai;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
-use Illuminate\Queue\InteractsWithQueue;
-use Illuminate\Queue\SerializesModels;
 
 class GenerateAiContent implements ShouldQueue
 {
@@ -25,7 +25,8 @@ class GenerateAiContent implements ShouldQueue
         public string $column,
         public string $content,
         public string $locale,
-    ) {}
+    ) {
+    }
 
     public function handle(): void
     {

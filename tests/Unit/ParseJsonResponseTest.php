@@ -69,7 +69,7 @@ class ParseJsonResponseTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->provider = new FakeProvider;
+        $this->provider = new FakeProvider();
     }
 
     public function test_returns_null_for_empty_input(): void

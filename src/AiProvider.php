@@ -3,8 +3,8 @@
 namespace Dashed\DashedAi;
 
 use Dashed\DashedAi\Enums\AiCapability;
-use Dashed\DashedAi\Exceptions\EmbeddingNotSupportedException;
 use Dashed\DashedCore\Models\Customsetting;
+use Dashed\DashedAi\Exceptions\EmbeddingNotSupportedException;
 
 abstract class AiProvider
 {
@@ -57,7 +57,7 @@ abstract class AiProvider
         $parts = [];
         if (! $disableBrandRules) {
             $parts[] = "## Globale regels\n".
-                "- Gebruik NOOIT em-dashes (—). Gebruik een punt, komma of haakjes.\n".
+                "- Gebruik NOOIT em-dashes (-). Gebruik een punt, komma of haakjes.\n".
                 "- Gebruik geen AI-clichés (\"duik in\", \"ontdek de geheimen\", \"in een notendop\").\n".
                 "- Schrijf actief en in de \"je\"-vorm.\n".
                 "- Wanneer een JSON-antwoord wordt gevraagd met HTML erin: gebruik ENKELE quotes voor HTML-attributen (bijv. <a href='/url'>) zodat de JSON valide blijft.\n".
@@ -133,6 +133,7 @@ abstract class AiProvider
                 $start = $i;
                 $openChar = $ch;
                 $closeChar = $ch === '{' ? '}' : ']';
+
                 break;
             }
         }

@@ -2,26 +2,26 @@
 
 namespace Dashed\DashedAi\Filament\Pages\Settings;
 
-use Dashed\DashedAi\AiManager;
-use Dashed\DashedAi\Enums\AiCapability;
-use Dashed\DashedAi\Facades\Ai;
-use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
-use Dashed\DashedAi\Jobs\GenerateBrandContextJob;
-use Dashed\DashedCore\Classes\Sites;
-use Dashed\DashedCore\Models\Customsetting;
-use Dashed\DashedCore\Traits\HasSettingsPermission;
+use Filament\Pages\Page;
 use Filament\Actions\Action;
+use Filament\Schemas\Schema;
+use Dashed\DashedAi\AiManager;
+use Dashed\DashedAi\Facades\Ai;
+use Dashed\DashedCore\Classes\Sites;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Toggle;
+use Dashed\DashedAi\Enums\AiCapability;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
-use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
-use Filament\Pages\Page;
 use Filament\Schemas\Components\Section;
-use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
-use Filament\Schemas\Schema;
+use Dashed\DashedCore\Models\Customsetting;
+use Filament\Infolists\Components\TextEntry;
+use Dashed\DashedAi\Jobs\GenerateBrandContextJob;
+use Dashed\DashedCore\Traits\HasSettingsPermission;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
 
 class AiSettingsPage extends Page implements HasSchemas
