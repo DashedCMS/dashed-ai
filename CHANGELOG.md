@@ -2,6 +2,13 @@
 
 All notable changes to `dashed-ai` will be documented in this file.
 
+## v4.1.2 - 2026-05-08
+
+### Changed
+- **Tone-of-voice Brief gemerged in AI-instellingen-pagina.** De standalone `AiToneOfVoiceSettingsPage` is verwijderd; alle Brief-functionaliteit zit nu in een sectie "Uitgebreide tone-of-voice Brief" op de bestaande `AiSettingsPage`. Eén plek voor merkverhaal + schrijfstijl + Brief.
+- **Brief is nu opt-in via een toggle** (`ai_tone_of_voice_brief_enabled`, default `false`). `AiManager::resolveToneOfVoiceBrief()` returnt alleen een Brief wanneer de toggle aan staat, zodat bestaande sites met merkverhaal + schrijfstijl hun gedrag behouden bij update.
+- AI-instellingen-pagina toont nu read-only de actuele Brief, een override-textarea, en een helper-text "Laatst gegenereerd op X (Y dagen geleden)". Twee header-actions: "Vernieuw tone-of-voice Brief" (dispatcht `GenerateToneOfVoiceBriefJob`) en "Reset Brief" (wist alle Brief-Customsettings).
+
 ## v4.1.0 - 2026-05-08
 
 ### Added
