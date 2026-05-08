@@ -2,10 +2,13 @@
 
 namespace Dashed\DashedAi;
 
-use Dashed\DashedAi\Commands\CreateAltTextsCommand;
-use Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage;
 use Spatie\LaravelPackageTools\Package;
+use Illuminate\Console\Scheduling\Schedule;
+use Dashed\DashedAi\Commands\CreateAltTextsCommand;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
+use Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage;
+use Dashed\DashedAi\Commands\RefreshToneOfVoiceBriefCommand;
+use Dashed\DashedAi\Filament\Pages\Settings\AiToneOfVoiceSettingsPage;
 
 class DashedAiServiceProvider extends PackageServiceProvider
 {
@@ -17,19 +20,20 @@ class DashedAiServiceProvider extends PackageServiceProvider
             ->hasConfigFile(['dashed-ai'])
             ->hasCommands([
                 CreateAltTextsCommand::class,
+                RefreshToneOfVoiceBriefCommand::class,
             ])
             ->name(self::$name);
     }
 
     public function registeringPackage(): void
     {
-        $this->app->singleton(AiManager::class, fn () => new AiManager);
+        $this->app->singleton(AiManager::class, fn () => new AiManager());
     }
 
     public function bootingPackage(): void
     {
         cms()->builder('plugins', [
-            new DashedAiPlugin,
+            new DashedAiPlugin(),
         ]);
 
         cms()->registerSettingsPage(
@@ -37,6 +41,13 @@ class DashedAiServiceProvider extends PackageServiceProvider
             'AI',
             'sparkles',
             'AI providers, merkverhaal en schrijfstijl'
+        );
+
+        cms()->registerSettingsPage(
+            AiToneOfVoiceSettingsPage::class,
+            'AI tone of voice',
+            'sparkles',
+            'Stem alle AI-tekstgeneratie af op de toon van jouw merk.'
         );
 
         cms()->registerSettingsDocs(
@@ -81,5 +92,41 @@ MARKDOWN,
                 'Houd je API sleutels geheim en deel ze nooit per e-mail of chat.',
             ],
         );
+
+        cms()->registerSettingsDocs(
+            page: AiToneOfVoiceSettingsPage::class,
+            title: 'AI tone of voice',
+            intro: 'Op deze pagina beheer je de Tone of Voice Brief. De Brief wordt automatisch opgesteld op basis van het echte materiaal op je website (paginas, artikelen, best-selling producten) en wordt vervolgens als context meegestuurd bij elke AI-tekstgeneratie. Zo schrijft elke AI-call in dezelfde stijl.',
+            sections: [
+                [
+                    'heading' => 'Wat doet de Brief?',
+                    'body' => 'De Brief beschrijft je doelgroep, merkkarakter, spelling- en stijlregels, ritme, mate van storytelling en humor, en wat juist wel of niet werkt. Deze regels worden automatisch toegevoegd aan elke AI-aanroep, inclusief social posts, content paginas, artikelen, productbeschrijvingen en popup-teksten.',
+                ],
+                [
+                    'heading' => 'Wanneer wordt de Brief vernieuwd?',
+                    'body' => 'Een daily scheduler controleert per site of de Brief ouder is dan het ingestelde aantal dagen. Is dat zo, dan wordt de Brief automatisch opnieuw gegenereerd op basis van het meest actuele materiaal. Je kunt de Brief ook handmatig vernieuwen via de knop rechtsboven.',
+                ],
+                [
+                    'heading' => 'Wat is de override?',
+                    'body' => 'Wil je zelf precies bepalen hoe de AI schrijft? Vul dan de override in. Zolang er een override staat, gebruikt de AI uitsluitend die tekst en negeert de gegenereerde Brief. Maak het veld leeg om weer terug te schakelen naar de automatische Brief.',
+                ],
+            ],
+            fields: [
+                'Brief (gegenereerd)' => 'Read-only weergave van de laatst gegenereerde Brief. Niet bewerkbaar, gebruik de override of regenereer de Brief.',
+                'Brief override' => 'Handmatige Brief die de gegenereerde Brief overschrijft. Laat leeg om de gegenereerde Brief te gebruiken.',
+                'Maximale ouderdom (dagen)' => 'Hoeveel dagen de Brief mag bestaan voordat de scheduler hem automatisch opnieuw genereert. Default: 30.',
+            ],
+            tips: [
+                'Genereer de Brief opnieuw na een rebrand of grote contentwijziging zodat AI direct in de nieuwe stem schrijft.',
+                'Gebruik de override alleen als de gegenereerde Brief consequent niet aansluit. In de meeste gevallen is een nieuwe generatie voldoende.',
+            ],
+        );
+
+        $this->app->booted(function () {
+            $schedule = app(Schedule::class);
+            $schedule->command('dashed:refresh-tone-of-voice-brief')
+                ->daily()
+                ->withoutOverlapping();
+        });
     }
 }

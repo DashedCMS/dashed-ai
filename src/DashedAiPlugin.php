@@ -2,9 +2,10 @@
 
 namespace Dashed\DashedAi;
 
-use Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage;
-use Filament\Contracts\Plugin;
 use Filament\Panel;
+use Filament\Contracts\Plugin;
+use Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage;
+use Dashed\DashedAi\Filament\Pages\Settings\AiToneOfVoiceSettingsPage;
 
 class DashedAiPlugin implements Plugin
 {
@@ -17,8 +18,11 @@ class DashedAiPlugin implements Plugin
     {
         $panel->pages([
             AiSettingsPage::class,
+            AiToneOfVoiceSettingsPage::class,
         ]);
     }
 
-    public function boot(Panel $panel): void {}
+    public function boot(Panel $panel): void
+    {
+    }
 }

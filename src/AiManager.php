@@ -37,16 +37,22 @@ class AiManager
 
     public function text(string $prompt, array $options = []): ?string
     {
+        $prompt = $this->prependToneOfVoice($prompt, $options);
+
         return $this->default(AiCapability::Text)?->text($prompt, $options);
     }
 
     public function json(string $prompt, array $options = []): ?array
     {
+        $prompt = $this->prependToneOfVoice($prompt, $options);
+
         return $this->default(AiCapability::Json)?->json($prompt, $options);
     }
 
     public function vision(string $prompt, string $imageData, string $mimeType, array $options = []): ?string
     {
+        $prompt = $this->prependToneOfVoice($prompt, $options);
+
         return $this->default(AiCapability::Vision)?->vision($prompt, $imageData, $mimeType, $options);
     }
 
@@ -90,5 +96,44 @@ class AiManager
     public function hasProvider(): bool
     {
         return ! empty($this->connectedProviders());
+    }
+
+    /**
+     * Tone-of-voice middleware: prepent (indien aanwezig) de gegenereerde of
+     * handmatig overschreven Brief als context-prefix aan het prompt. De caller
+     * kan dit uitschakelen met `['skip_tone_of_voice' => true]` (gebruikt door
+     * de generator zelf om recursie te voorkomen).
+     */
+    protected function prependToneOfVoice(string $prompt, array $options): string
+    {
+        if (($options['skip_tone_of_voice'] ?? false) === true) {
+            return $prompt;
+        }
+
+        $brief = $this->resolveToneOfVoiceBrief();
+        if ($brief === null) {
+            return $prompt;
+        }
+
+        return "## Tone of voice (intern, gebruik dit als briefing voor de schrijftaak hieronder)\n\n"
+            . $brief
+            . "\n\n---\n\n## Schrijftaak\n\n"
+            . $prompt;
+    }
+
+    /**
+     * Resolve de actieve Brief: handmatige override gaat voor de gegenereerde
+     * Brief; geen Brief geconfigureerd retourneert null (geen prefix).
+     */
+    protected function resolveToneOfVoiceBrief(): ?string
+    {
+        $override = trim((string) Customsetting::get('ai_tone_of_voice_brief_manual_override'));
+        if ($override !== '') {
+            return $override;
+        }
+
+        $generated = trim((string) Customsetting::get('ai_tone_of_voice_brief'));
+
+        return $generated !== '' ? $generated : null;
     }
 }
