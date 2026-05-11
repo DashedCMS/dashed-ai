@@ -18,10 +18,9 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Contracts\HasSchemas;
 use Dashed\DashedCore\Models\Customsetting;
 use Filament\Infolists\Components\TextEntry;
-use Dashed\DashedAi\Jobs\GenerateBrandContextJob;
-use Dashed\DashedAi\Jobs\GenerateToneOfVoiceBriefJob;
 use Dashed\DashedCore\Traits\HasSettingsPermission;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Dashed\DashedAi\Jobs\GenerateToneOfVoiceBriefJob;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
 
@@ -42,11 +41,8 @@ class AiSettingsPage extends Page implements HasSchemas
     {
         $formData = [
             'ai_default_provider' => Customsetting::get('ai_default_provider'),
-            'ai_brand_story' => Customsetting::get('ai_brand_story'),
-            'ai_writing_style' => Customsetting::get('ai_writing_style'),
             'create_alt_text_for_new_uploaded_images' => Customsetting::get('create_alt_text_for_new_uploaded_images'),
             'fal_api_key' => Customsetting::get('fal_api_key'),
-            'ai_tone_of_voice_brief_enabled' => (bool) Customsetting::get('ai_tone_of_voice_brief_enabled', null, false),
             'ai_tone_of_voice_brief' => Customsetting::get('ai_tone_of_voice_brief'),
             'ai_tone_of_voice_brief_manual_override' => Customsetting::get('ai_tone_of_voice_brief_manual_override'),
             'ai_tone_of_voice_max_age_days' => (int) Customsetting::get('ai_tone_of_voice_max_age_days', null, 30),
@@ -75,40 +71,27 @@ class AiSettingsPage extends Page implements HasSchemas
 
         $sections = [
             Section::make('Algemeen')
-                ->description('Kies de standaard AI provider en definieer het merkverhaal en de schrijfstijl die als context worden meegegeven bij elke AI-aanroep.')
+                ->description('Kies de standaard AI provider. De tone-of-voice Brief hieronder is de enige merk-context die bij elke AI-aanroep wordt meegegeven.')
                 ->schema([
                     Select::make('ai_default_provider')
                         ->label('Standaard AI provider')
                         ->options($providerOptions)
                         ->placeholder('Automatisch (eerste beschikbare)')
                         ->helperText('Als deze niet beschikbaar is, wordt automatisch een andere verbonden provider gebruikt.'),
-                    Textarea::make('ai_brand_story')
-                        ->label('Merkverhaal')
-                        ->helperText('Beschrijf wat je merk doet, welke producten of diensten je aanbiedt, voor wie, en wat je onderscheidt. Dit wordt bij elke AI-aanroep meegegeven als context.')
-                        ->rows(6)
-                        ->placeholder('Bijv: Dashed is een Nederlands bureau dat maatwerk Laravel-websites en webshops bouwt voor het MKB. We combineren techniek en design om bedrijven online te laten groeien.'),
-                    Textarea::make('ai_writing_style')
-                        ->label('Schrijfstijl')
-                        ->helperText('Beschrijf hoe er geschreven moet worden: toon, formaliteit, zinslengte, humor, vaktaal, woorden die wel/niet passen. Dit wordt bij elke AI-aanroep meegegeven.')
-                        ->rows(6)
-                        ->placeholder('Bijv: Informeel Nederlands, enthousiast en persoonlijk. Korte zinnen, directe aanspreekvorm (je/jij). Geen EM-dashes, geen stijve corporate taal, geen overdreven superlatieven.'),
                     Toggle::make('create_alt_text_for_new_uploaded_images')
                         ->label('Automatisch alt-teksten genereren voor nieuwe uploads')
                         ->helperText('Gebruikt de vision-capability van de actieve AI provider. Werkt alleen voor Nederlands.'),
                 ]),
 
-            Section::make('Uitgebreide tone-of-voice Brief')
-                ->description('Genereert via AI een complete tone-of-voice Brief op basis van pages, artikelen en producten van deze site. Gebruik dit naast (of in plaats van) Merkverhaal + Schrijfstijl voor scherpere, consistentere AI-teksten. Vernieuwt automatisch elke 30 dagen via de scheduler tenzij je een handmatige override hebt ingevuld.')
+            Section::make('Tone-of-voice Brief')
+                ->description('De Brief is de enige merk-context die bij elke AI-aanroep wordt meegegeven. AI genereert hem op basis van pages, artikelen en producten van deze site. Vernieuwt automatisch elke 30 dagen via de scheduler tenzij je een handmatige override hebt ingevuld.')
                 ->schema([
-                    Toggle::make('ai_tone_of_voice_brief_enabled')
-                        ->label('Gebruik uitgebreide Brief in elke AI-aanroep')
-                        ->helperText('Wanneer aan, prepend AiManager de Brief (manual override > gegenereerde versie) als systeem-context. Standaard uit zodat bestaande sites hun gedrag behouden.'),
                     Textarea::make('ai_tone_of_voice_brief')
                         ->label('Huidige Brief (gegenereerd door AI)')
                         ->disabled()
                         ->dehydrated(false)
                         ->rows(20)
-                        ->placeholder('Nog geen Brief gegenereerd. Klik bovenaan op "Vernieuw Brief" om er één te genereren.')
+                        ->placeholder('Nog geen Brief gegenereerd. Klik bovenaan op "Vernieuw tone-of-voice Brief" om er een te genereren.')
                         ->helperText(fn (): string => $this->resolveLastGeneratedLabel()),
                     Textarea::make('ai_tone_of_voice_brief_manual_override')
                         ->label('Handmatige override (optioneel)')
@@ -192,11 +175,8 @@ class AiSettingsPage extends Page implements HasSchemas
 
         foreach (Sites::getSites() as $site) {
             Customsetting::set('ai_default_provider', $formData['ai_default_provider'] ?? null, $site['id']);
-            Customsetting::set('ai_brand_story', $formData['ai_brand_story'] ?? null, $site['id']);
-            Customsetting::set('ai_writing_style', $formData['ai_writing_style'] ?? null, $site['id']);
             Customsetting::set('create_alt_text_for_new_uploaded_images', $formData['create_alt_text_for_new_uploaded_images'] ?? false, $site['id']);
             Customsetting::set('fal_api_key', $formData['fal_api_key'] ?? null, $site['id']);
-            Customsetting::set('ai_tone_of_voice_brief_enabled', (bool) ($formData['ai_tone_of_voice_brief_enabled'] ?? false), $site['id']);
             Customsetting::set('ai_tone_of_voice_brief_manual_override', $formData['ai_tone_of_voice_brief_manual_override'] ?? null, $site['id']);
             Customsetting::set('ai_tone_of_voice_max_age_days', (int) ($formData['ai_tone_of_voice_max_age_days'] ?? 30), $site['id']);
 
@@ -223,25 +203,6 @@ class AiSettingsPage extends Page implements HasSchemas
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('generateBrandContext')
-                ->label('Genereer merkverhaal & schrijfstijl')
-                ->icon('heroicon-o-sparkles')
-                ->color('primary')
-                ->visible(fn () => Ai::hasProvider())
-                ->requiresConfirmation()
-                ->modalHeading('Merkverhaal & schrijfstijl automatisch genereren')
-                ->modalDescription('AI analyseert de huidige website-inhoud en genereert een merkverhaal en schrijfstijl. Dit gebeurt op de achtergrond - je krijgt een notificatie als het klaar is. Bestaande waarden worden overschreven.')
-                ->modalSubmitActionLabel('Start genereren')
-                ->action(function (): void {
-                    GenerateBrandContextJob::dispatch(auth()->id());
-
-                    Notification::make()
-                        ->title('Generatie gestart')
-                        ->body('De AI analyseert je website op de achtergrond. Je krijgt een notificatie zodra het klaar is.')
-                        ->success()
-                        ->send();
-                }),
-
             Action::make('refreshToneOfVoiceBrief')
                 ->label('Vernieuw tone-of-voice Brief')
                 ->icon('heroicon-o-arrow-path')
@@ -267,7 +228,7 @@ class AiSettingsPage extends Page implements HasSchemas
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('Tone-of-voice Brief resetten')
-                ->modalDescription('Verwijdert de gegenereerde Brief, de eventuele override en de bronnen-historie. AI-aanroepen vallen daarna terug op alleen merkverhaal + schrijfstijl totdat je opnieuw genereert.')
+                ->modalDescription('Verwijdert de gegenereerde Brief, de eventuele override en de bronnen-historie. AI-aanroepen lopen daarna zonder merk-context totdat je opnieuw genereert.')
                 ->modalSubmitActionLabel('Reset')
                 ->action(function (): void {
                     foreach (Sites::getSites() as $site) {

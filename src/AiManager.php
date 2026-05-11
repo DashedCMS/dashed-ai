@@ -127,13 +127,6 @@ class AiManager
      */
     protected function resolveToneOfVoiceBrief(): ?string
     {
-        // Site-admin moet de Brief expliciet inschakelen op de AI-instellingen
-        // pagina. Standaard uit zodat sites met merkverhaal + schrijfstijl
-        // hun bestaande gedrag behouden bij update.
-        if (! (bool) Customsetting::get('ai_tone_of_voice_brief_enabled', null, false)) {
-            return null;
-        }
-
         $override = trim((string) Customsetting::get('ai_tone_of_voice_brief_manual_override'));
         if ($override !== '') {
             return $override;
