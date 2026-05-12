@@ -31,6 +31,16 @@ class DashedAiServiceProvider extends PackageServiceProvider
 
     public function bootingPackage(): void
     {
+        cms()->registerIntegration([
+            'slug' => 'ai_fal',
+            'label' => 'Fal.ai',
+            'icon' => 'heroicon-o-sparkles',
+            'category' => 'ai',
+            'settings_page' => \Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage::class,
+            'health_check' => fn (?string $siteId = null) => \Dashed\DashedCore\Integrations\IntegrationHealth::fromSettings(['fal_api_key'], $siteId, 'API key ontbreekt'),
+            'package' => 'dashed-ai',
+        ]);
+
         cms()->builder('plugins', [
             new DashedAiPlugin(),
         ]);
