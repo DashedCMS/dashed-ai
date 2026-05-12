@@ -6,6 +6,7 @@ use Throwable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Queue\SerializesModels;
+use Dashed\DashedCore\Jobs\Concerns\HandlesQueueFailures;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -22,6 +23,7 @@ class GenerateToneOfVoiceBriefJob implements ShouldQueue
     use InteractsWithQueue;
     use Queueable;
     use SerializesModels;
+    use HandlesQueueFailures;
 
     public int $tries = 3;
 
@@ -64,5 +66,7 @@ class GenerateToneOfVoiceBriefJob implements ShouldQueue
             'site_id' => $this->siteId,
             'error' => $e->getMessage(),
         ]);
+
+        $this->reportFailure($e);
     }
 }
