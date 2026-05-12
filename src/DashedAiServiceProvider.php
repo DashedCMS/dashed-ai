@@ -35,6 +35,15 @@ class DashedAiServiceProvider extends PackageServiceProvider
             new DashedAiPlugin(),
         ]);
 
+        cms()->registerSetting(
+            key: 'ai_default_provider',
+            type: 'string',
+            default: null,
+            package: 'dashed-ai',
+            label: 'Standaard AI provider',
+            description: 'Identifier van de AI-provider die AiManager standaard gebruikt.',
+        );
+
         cms()->registerSettingsPage(
             AiSettingsPage::class,
             'AI',
