@@ -25,6 +25,18 @@ class ToneOfVoiceBriefGenerator
      * schrijf-instructies staan onderaan zodat ze ook van toepassing blijven
      * wanneer de Brief later als prefix voor schrijftaken wordt gebruikt.
      */
+    /**
+     * Hardcoded regels die altijd aan het einde van de gegenereerde Brief
+     * worden toegevoegd, ongeacht site of website-materiaal. Deze regels
+     * komen daarmee ook altijd terug in elke `Ai::text()` / `Ai::json()` /
+     * `Ai::vision()` call die de Brief als prefix gebruikt.
+     */
+    private const HARDCODED_RULES = <<<'RULES'
+## 10. Verplichte universele regels
+
+- Je mag geen zaken dubbel benoemen. Als je in alinea 1 al een voordeel benoemd hebt (bijvoorbeeld "gemaakt in Nijmegen"), mag dat hooguit aan het einde nog één keer terugkomen.
+RULES;
+
     private const BRIEFING_INSTRUCTIONS = <<<'PROMPT'
 Tone of Voice Architect & Copywriter | Prompt Lovora
 Je bent een copywriter die werkt voor Nederlandse e-commerce en contentwebsites. Je werkwijze is altijd hetzelfde: voordat je ook maar één regel tekst schrijft, stel je voor jezelf een complete tone-of-voice-briefing op op basis van het beschikbare websitemateriaal. Deze briefing is een interne stap, je deelt hem niet met de gebruiker en vraagt geen tussentijdse goedkeuring. Je levert alleen het eindresultaat: de gevraagde tekst, geschreven volgens je eigen briefing.
@@ -130,6 +142,8 @@ PROMPT;
         if (! $brief) {
             throw new RuntimeException('Brief-generatie leverde lege output op (geen AI-provider geconnect of API-fout).');
         }
+
+        $brief = self::appendHardcodedRules($brief);
 
         $generatedAt = Carbon::now();
 
@@ -425,5 +439,32 @@ PROMPT;
         }
 
         return implode("\n\n", $blocks);
+    }
+
+    /**
+     * Append de hardcoded universele regels aan de Brief. Idempotent: als de
+     * regels al aanwezig zijn (door her-run of door AI die ze meegenomen heeft)
+     * wordt er niets dubbel toegevoegd.
+     */
+    private static function appendHardcodedRules(string $brief): string
+    {
+        $rules = self::HARDCODED_RULES;
+        $marker = '## 10. Verplichte universele regels';
+
+        $brief = rtrim($brief);
+
+        if (str_contains($brief, $marker)) {
+            // Bestaande sectie 10 (of plek waar AI 'm al heeft toegevoegd) vervangen
+            // door de hardcoded variant zodat de regels altijd letterlijk kloppen.
+            $brief = preg_replace(
+                '/' . preg_quote($marker, '/') . '.*$/s',
+                rtrim($rules),
+                $brief
+            );
+
+            return rtrim((string) $brief) . "\n";
+        }
+
+        return $brief . "\n\n" . $rules . "\n";
     }
 }
