@@ -25,6 +25,11 @@ class GenerateToneOfVoiceBriefJob implements ShouldQueue
     use SerializesModels;
     use HandlesQueueFailures;
 
+    public int $tries = 3;
+    public int $timeout = 120;
+    /** @var array<int,int> */
+    public array $backoff = [60, 300, 900];
+
     public function __construct(
         public ?string $siteId = null,
     ) {
