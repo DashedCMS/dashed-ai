@@ -3,7 +3,6 @@
 namespace Dashed\DashedAi;
 
 use Dashed\DashedAi\Enums\AiCapability;
-use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedAi\Exceptions\EmbeddingNotSupportedException;
 
 abstract class AiProvider

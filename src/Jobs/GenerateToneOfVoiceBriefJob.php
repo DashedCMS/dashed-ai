@@ -6,11 +6,11 @@ use Throwable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Queue\SerializesModels;
-use Dashed\DashedCore\Jobs\Concerns\HandlesQueueFailures;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Dashed\DashedAi\Services\ToneOfVoiceBriefGenerator;
+use Dashed\DashedCore\Jobs\Concerns\HandlesQueueFailures;
 
 /**
  * Genereert async een Tone of Voice Brief voor 1 site. Wordt gedispatched
@@ -25,23 +25,10 @@ class GenerateToneOfVoiceBriefJob implements ShouldQueue
     use SerializesModels;
     use HandlesQueueFailures;
 
-    public int $tries = 3;
-
-    public int $timeout = 600;
-
     public function __construct(
         public ?string $siteId = null,
     ) {
-    }
-
-    /**
-     * Exponential backoff: 1 min, 5 min, 15 min.
-     *
-     * @return array<int, int>
-     */
-    public function backoff(): array
-    {
-        return [60, 300, 900];
+        $this->timeout = 600;
     }
 
     public function handle(): void
