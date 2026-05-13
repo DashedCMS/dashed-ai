@@ -31,28 +31,32 @@ class DashedAiServiceProvider extends PackageServiceProvider
 
     public function bootingPackage(): void
     {
-        cms()->registerIntegration([
-            'slug' => 'ai_fal',
-            'label' => 'Fal.ai',
-            'icon' => 'heroicon-o-sparkles',
-            'category' => 'ai',
-            'settings_page' => \Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage::class,
-            'health_check' => fn (?string $siteId = null) => \Dashed\DashedCore\Integrations\IntegrationHealth::fromSettings(['fal_api_key'], $siteId, 'API key ontbreekt'),
-            'package' => 'dashed-ai',
-        ]);
+        if (method_exists(cms(), 'registerIntegration')) {
+            cms()->registerIntegration([
+                'slug' => 'ai_fal',
+                'label' => 'Fal.ai',
+                'icon' => 'heroicon-o-sparkles',
+                'category' => 'ai',
+                'settings_page' => \Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage::class,
+                'health_check' => fn (?string $siteId = null) => \Dashed\DashedCore\Integrations\IntegrationHealth::fromSettings(['fal_api_key'], $siteId, 'API key ontbreekt'),
+                'package' => 'dashed-ai',
+            ]);
+        }
 
         cms()->builder('plugins', [
             new DashedAiPlugin(),
         ]);
 
-        cms()->registerSetting(
-            key: 'ai_default_provider',
-            type: 'string',
-            default: null,
-            package: 'dashed-ai',
-            label: 'Standaard AI provider',
-            description: 'Identifier van de AI-provider die AiManager standaard gebruikt.',
-        );
+        if (method_exists(cms(), 'registerSetting')) {
+            cms()->registerSetting(
+                key: 'ai_default_provider',
+                type: 'string',
+                default: null,
+                package: 'dashed-ai',
+                label: 'Standaard AI provider',
+                description: 'Identifier van de AI-provider die AiManager standaard gebruikt.',
+            );
+        }
 
         cms()->registerSettingsPage(
             AiSettingsPage::class,
