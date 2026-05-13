@@ -22,6 +22,7 @@ use Dashed\DashedCore\Traits\HasSettingsPermission;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Dashed\DashedAi\Jobs\GenerateToneOfVoiceBriefJob;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
+use Dashed\DashedMarketing\Jobs\BulkGenerateMetaJob;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
 
 class AiSettingsPage extends Page implements HasSchemas
@@ -278,6 +279,81 @@ class AiSettingsPage extends Page implements HasSchemas
 
                     Notification::make()
                         ->title('Alt teksten worden gegenereerd')
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('bulk_generate_meta')
+                ->label('Genereer meta voor alle modellen')
+                ->icon('heroicon-o-sparkles')
+                ->color('primary')
+                ->visible(fn () => Ai::hasProvider() && class_exists(BulkGenerateMetaJob::class))
+                ->modalHeading('Meta genereren voor alle modellen')
+                ->modalDescription('AI genereert voor elk geselecteerd model een meta-titel en meta-omschrijving in elke taal. De feitelijke generatie loopt op de achtergrond, per record.')
+                ->modalSubmitActionLabel('Start genereren')
+                ->schema([
+                    Toggle::make('overwrite')
+                        ->label('Overschrijf bestaande meta titels/beschrijvingen')
+                        ->default(false),
+                    Textarea::make('user_instruction')
+                        ->label('Optionele instructie')
+                        ->placeholder('Bijv. nadruk op lokale SEO of een specifiek keyword.')
+                        ->rows(3),
+                    Select::make('models')
+                        ->label('Welke modellen')
+                        ->multiple()
+                        ->options(function (): array {
+                            try {
+                                $registry = (array) cms()->builder('routeModels');
+                            } catch (\Throwable) {
+                                return [];
+                            }
+
+                            $options = [];
+                            foreach ($registry as $key => $config) {
+                                $label = $config['pluralName'] ?? $config['name'] ?? $key;
+                                $options[$key] = (string) $label;
+                            }
+
+                            return $options;
+                        })
+                        ->default(function (): array {
+                            try {
+                                return array_keys((array) cms()->builder('routeModels'));
+                            } catch (\Throwable) {
+                                return [];
+                            }
+                        })
+                        ->required(),
+                ])
+                ->action(function (array $data): void {
+                    if (! class_exists(BulkGenerateMetaJob::class)) {
+                        Notification::make()
+                            ->title('dashed-marketing is niet geïnstalleerd')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    $models = array_values(array_filter((array) ($data['models'] ?? []), 'is_string'));
+                    if ($models === []) {
+                        Notification::make()
+                            ->title('Kies minimaal één model')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    $instruction = ! empty($data['user_instruction']) ? (string) $data['user_instruction'] : null;
+                    $overwrite = (bool) ($data['overwrite'] ?? false);
+
+                    BulkGenerateMetaJob::dispatch($models, $instruction, $overwrite);
+
+                    Notification::make()
+                        ->title('Bulk meta-generatie gestart')
+                        ->body('De jobs worden op de achtergrond afgevuurd, per record. Houd de queue-monitor in de gaten.')
                         ->success()
                         ->send();
                 }),
