@@ -46,6 +46,11 @@ abstract class AiProvider
         throw new \Dashed\DashedAi\Exceptions\AiException('Provider ' . $this->name() . ' ondersteunt geen tool-messages.');
     }
 
+    public function streamMessages(array $messages, array $options, callable $onText): array
+    {
+        throw new \Dashed\DashedAi\Exceptions\AiException('Provider ' . $this->name() . ' ondersteunt geen streaming.');
+    }
+
     public function supports(AiCapability $capability): bool
     {
         return in_array($capability, $this->supportedCapabilities(), true);

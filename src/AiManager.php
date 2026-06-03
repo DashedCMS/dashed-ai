@@ -66,6 +66,11 @@ class AiManager
         return $this->default(AiCapability::Text)?->messages($messages, $options);
     }
 
+    public function streamMessages(array $messages, array $options, callable $onText): ?array
+    {
+        return $this->default(AiCapability::Text)?->streamMessages($messages, $options, $onText);
+    }
+
     public function embed(string $text, array $options = []): array
     {
         $provider = $this->default(AiCapability::Embedding);
