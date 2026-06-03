@@ -41,6 +41,11 @@ abstract class AiProvider
 
     abstract public function isConnected(): bool;
 
+    public function messages(array $messages, array $options = []): array
+    {
+        throw new \Dashed\DashedAi\Exceptions\AiException('Provider ' . $this->name() . ' ondersteunt geen tool-messages.');
+    }
+
     public function supports(AiCapability $capability): bool
     {
         return in_array($capability, $this->supportedCapabilities(), true);

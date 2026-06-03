@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static string|null vision(string $prompt, string $imageData, string $mimeType, array $options = [])
  * @method static string|null image(string $prompt, array $options = [])
  * @method static array embed(string $text, array $options = [])
+ * @method static array|null messages(array $messages, array $options = [])
  * @method static \Dashed\DashedAi\AiProvider|null default(?\Dashed\DashedAi\Enums\AiCapability $capability = null)
  * @method static array providers()
  * @method static array connectedProviders()
