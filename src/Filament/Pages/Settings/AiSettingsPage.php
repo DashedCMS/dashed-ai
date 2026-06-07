@@ -20,9 +20,9 @@ use Dashed\DashedCore\Models\Customsetting;
 use Filament\Infolists\Components\TextEntry;
 use Dashed\DashedCore\Traits\HasSettingsPermission;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Dashed\DashedMarketing\Jobs\BulkGenerateMetaJob;
 use Dashed\DashedAi\Jobs\GenerateToneOfVoiceBriefJob;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
-use Dashed\DashedMarketing\Jobs\BulkGenerateMetaJob;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
 
 class AiSettingsPage extends Page implements HasSchemas
