@@ -4,7 +4,6 @@ namespace Dashed\DashedAi;
 
 use Filament\Panel;
 use Filament\Contracts\Plugin;
-use Dashed\DashedAi\Filament\Pages\CopilotPage;
 use Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage;
 
 class DashedAiPlugin implements Plugin
@@ -18,7 +17,6 @@ class DashedAiPlugin implements Plugin
     {
         $panel->pages([
             AiSettingsPage::class,
-            CopilotPage::class,
         ]);
     }
 

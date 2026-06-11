@@ -17,7 +17,6 @@ class DashedAiServiceProvider extends PackageServiceProvider
     {
         $package
             ->hasConfigFile(['dashed-ai'])
-            ->hasViews()
             ->hasCommands([
                 CreateAltTextsCommand::class,
                 RefreshToneOfVoiceBriefCommand::class,
