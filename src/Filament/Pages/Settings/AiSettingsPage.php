@@ -254,7 +254,7 @@ class AiSettingsPage extends Page implements HasSchemas
                 ->visible(fn () => Ai::default(AiCapability::Vision) !== null)
                 ->schema([
                     TextEntry::make('info')
-                        ->label(__(''))
+                        ->label('')
                         ->state(function (): string {
                             $total = MediaLibraryItem::whereHas('media', fn ($q) => $q->whereIn('mime_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']))->count();
                             $missing = MediaLibraryItem::whereNull('alt_text')->whereHas('media', fn ($q) => $q->whereIn('mime_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']))->count();
