@@ -71,52 +71,52 @@ class AiSettingsPage extends Page implements HasSchemas
         }
 
         $sections = [
-            Section::make('Algemeen')
-                ->description('Kies de standaard AI provider. De tone-of-voice Brief hieronder is de enige merk-context die bij elke AI-aanroep wordt meegegeven.')
+            Section::make(__('Algemeen'))
+                ->description(__('Kies de standaard AI provider. De tone-of-voice Brief hieronder is de enige merk-context die bij elke AI-aanroep wordt meegegeven.'))
                 ->schema([
                     Select::make('ai_default_provider')
-                        ->label('Standaard AI provider')
+                        ->label(__('Standaard AI provider'))
                         ->options($providerOptions)
-                        ->placeholder('Automatisch (eerste beschikbare)')
-                        ->helperText('Als deze niet beschikbaar is, wordt automatisch een andere verbonden provider gebruikt.'),
+                        ->placeholder(__('Automatisch (eerste beschikbare)'))
+                        ->helperText(__('Als deze niet beschikbaar is, wordt automatisch een andere verbonden provider gebruikt.')),
                     Toggle::make('create_alt_text_for_new_uploaded_images')
-                        ->label('Automatisch alt-teksten genereren voor nieuwe uploads')
-                        ->helperText('Gebruikt de vision-capability van de actieve AI provider. Werkt alleen voor Nederlands.'),
+                        ->label(__('Automatisch alt-teksten genereren voor nieuwe uploads'))
+                        ->helperText(__('Gebruikt de vision-capability van de actieve AI provider. Werkt alleen voor Nederlands.')),
                 ]),
 
-            Section::make('Tone-of-voice Brief')
-                ->description('De Brief is de enige merk-context die bij elke AI-aanroep wordt meegegeven. AI genereert hem op basis van pages, artikelen en producten van deze site. Vernieuwt automatisch elke 30 dagen via de scheduler tenzij je een handmatige override hebt ingevuld.')
+            Section::make(__('Tone-of-voice Brief'))
+                ->description(__('De Brief is de enige merk-context die bij elke AI-aanroep wordt meegegeven. AI genereert hem op basis van pages, artikelen en producten van deze site. Vernieuwt automatisch elke 30 dagen via de scheduler tenzij je een handmatige override hebt ingevuld.'))
                 ->schema([
                     Textarea::make('ai_tone_of_voice_brief')
-                        ->label('Huidige Brief (gegenereerd door AI)')
+                        ->label(__('Huidige Brief (gegenereerd door AI)'))
                         ->disabled()
                         ->dehydrated(false)
                         ->rows(20)
-                        ->placeholder('Nog geen Brief gegenereerd. Klik bovenaan op "Vernieuw tone-of-voice Brief" om er een te genereren.')
+                        ->placeholder(__('Nog geen Brief gegenereerd. Klik bovenaan op "Vernieuw tone-of-voice Brief" om er een te genereren.'))
                         ->helperText(fn (): string => $this->resolveLastGeneratedLabel()),
                     Textarea::make('ai_tone_of_voice_brief_manual_override')
-                        ->label('Handmatige override (optioneel)')
+                        ->label(__('Handmatige override (optioneel)'))
                         ->rows(20)
-                        ->placeholder('Laat leeg om de gegenereerde Brief te gebruiken. Vul in om handmatig de toon vast te leggen of de gegenereerde versie bij te schaven.')
-                        ->helperText('Wanneer dit veld is ingevuld, wordt het gebruikt in plaats van de gegenereerde Brief. De scheduler ververst geen sites met een actieve override.'),
+                        ->placeholder(__('Laat leeg om de gegenereerde Brief te gebruiken. Vul in om handmatig de toon vast te leggen of de gegenereerde versie bij te schaven.'))
+                        ->helperText(__('Wanneer dit veld is ingevuld, wordt het gebruikt in plaats van de gegenereerde Brief. De scheduler ververst geen sites met een actieve override.')),
                     TextInput::make('ai_tone_of_voice_max_age_days')
-                        ->label('Maximale ouderdom van de Brief (dagen)')
+                        ->label(__('Maximale ouderdom van de Brief (dagen)'))
                         ->numeric()
                         ->minValue(1)
                         ->maxValue(365)
                         ->default(30)
-                        ->helperText('Daily-scheduler ververst de Brief wanneer hij ouder is dan dit aantal dagen.'),
+                        ->helperText(__('Daily-scheduler ververst de Brief wanneer hij ouder is dan dit aantal dagen.')),
                 ]),
 
-            Section::make('Afbeelding generatie (Fal.ai)')
-                ->description('Zodra hier een Fal.ai API sleutel staat, verschijnt er bij elk afbeelding-veld in de CMS een "Genereer met AI" knop. Met een referentieafbeelding wordt nano-banana/edit gebruikt, zonder referentie flux/dev.')
+            Section::make(__('Afbeelding generatie (Fal.ai)'))
+                ->description(__('Zodra hier een Fal.ai API sleutel staat, verschijnt er bij elk afbeelding-veld in de CMS een "Genereer met AI" knop. Met een referentieafbeelding wordt nano-banana/edit gebruikt, zonder referentie flux/dev.'))
                 ->schema([
                     TextInput::make('fal_api_key')
-                        ->label('Fal.ai API sleutel')
+                        ->label(__('Fal.ai API sleutel'))
                         ->password()
                         ->revealable()
-                        ->helperText('Je vindt je API sleutel op fal.ai → API Keys.')
-                        ->placeholder('fal_...'),
+                        ->helperText(__('Je vindt je API sleutel op fal.ai → API Keys.'))
+                        ->placeholder(__('fal_...')),
                 ]),
         ];
 
@@ -128,12 +128,12 @@ class AiSettingsPage extends Page implements HasSchemas
 
             $providerSchema = array_merge([
                 TextEntry::make('connection_status_'.$provider->name())
-                    ->label('Status')
+                    ->label(__('Status'))
                     ->state($provider->label().' is '.($connected ? 'verbonden' : 'niet verbonden'))
                     ->badge()
                     ->color($connected ? 'success' : 'danger'),
                 TextEntry::make('capabilities_'.$provider->name())
-                    ->label('Ondersteunde capabilities')
+                    ->label(__('Ondersteunde capabilities'))
                     ->state($capabilities ?: '-'),
             ], $provider->settingsSchema());
 
@@ -194,7 +194,7 @@ class AiSettingsPage extends Page implements HasSchemas
         }
 
         Notification::make()
-            ->title('AI instellingen opgeslagen')
+            ->title(__('AI instellingen opgeslagen'))
             ->success()
             ->send();
 
@@ -205,32 +205,32 @@ class AiSettingsPage extends Page implements HasSchemas
     {
         return [
             Action::make('refreshToneOfVoiceBrief')
-                ->label('Vernieuw tone-of-voice Brief')
+                ->label(__('Vernieuw tone-of-voice Brief'))
                 ->icon('heroicon-o-arrow-path')
                 ->color('primary')
                 ->visible(fn () => Ai::hasProvider())
                 ->requiresConfirmation()
-                ->modalHeading('Tone-of-voice Brief opnieuw genereren')
-                ->modalDescription('AI analyseert pages, artikelen en producten van deze site en bouwt een complete tone-of-voice Brief volgens de 9-onderdelen-briefing. Bestaande gegenereerde Brief wordt overschreven; een handmatige override blijft staan.')
-                ->modalSubmitActionLabel('Vernieuw nu')
+                ->modalHeading(__('Tone-of-voice Brief opnieuw genereren'))
+                ->modalDescription(__('AI analyseert pages, artikelen en producten van deze site en bouwt een complete tone-of-voice Brief volgens de 9-onderdelen-briefing. Bestaande gegenereerde Brief wordt overschreven; een handmatige override blijft staan.'))
+                ->modalSubmitActionLabel(__('Vernieuw nu'))
                 ->action(function (): void {
                     GenerateToneOfVoiceBriefJob::dispatch();
 
                     Notification::make()
-                        ->title('Brief wordt op de achtergrond gegenereerd')
-                        ->body('Ververs deze pagina over een minuut om het resultaat te zien.')
+                        ->title(__('Brief wordt op de achtergrond gegenereerd'))
+                        ->body(__('Ververs deze pagina over een minuut om het resultaat te zien.'))
                         ->success()
                         ->send();
                 }),
 
             Action::make('resetToneOfVoiceBrief')
-                ->label('Reset Brief')
+                ->label(__('Reset Brief'))
                 ->icon('heroicon-o-trash')
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('Tone-of-voice Brief resetten')
-                ->modalDescription('Verwijdert de gegenereerde Brief, de eventuele override en de bronnen-historie. AI-aanroepen lopen daarna zonder merk-context totdat je opnieuw genereert.')
-                ->modalSubmitActionLabel('Reset')
+                ->modalHeading(__('Tone-of-voice Brief resetten'))
+                ->modalDescription(__('Verwijdert de gegenereerde Brief, de eventuele override en de bronnen-historie. AI-aanroepen lopen daarna zonder merk-context totdat je opnieuw genereert.'))
+                ->modalSubmitActionLabel(__('Reset'))
                 ->action(function (): void {
                     foreach (Sites::getSites() as $site) {
                         Customsetting::set('ai_tone_of_voice_brief', null, $site['id']);
@@ -240,7 +240,7 @@ class AiSettingsPage extends Page implements HasSchemas
                     }
 
                     Notification::make()
-                        ->title('Brief gereset')
+                        ->title(__('Brief gereset'))
                         ->success()
                         ->send();
 
@@ -248,13 +248,13 @@ class AiSettingsPage extends Page implements HasSchemas
                 }),
 
             Action::make('generateAltTextForAllImages')
-                ->label('Genereer alt teksten voor alle afbeeldingen')
+                ->label(__('Genereer alt teksten voor alle afbeeldingen'))
                 ->icon('heroicon-o-photo')
                 ->color('primary')
                 ->visible(fn () => Ai::default(AiCapability::Vision) !== null)
                 ->schema([
                     TextEntry::make('info')
-                        ->label('')
+                        ->label(__(''))
                         ->state(function (): string {
                             $total = MediaLibraryItem::whereHas('media', fn ($q) => $q->whereIn('mime_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']))->count();
                             $missing = MediaLibraryItem::whereNull('alt_text')->whereHas('media', fn ($q) => $q->whereIn('mime_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']))->count();
@@ -262,13 +262,13 @@ class AiSettingsPage extends Page implements HasSchemas
                             return "Er zijn {$total} afbeeldingen waarvan {$missing} nog geen alt tekst hebben.";
                         }),
                     Toggle::make('overwriteExisting')
-                        ->label('Overschrijf bestaande alt teksten')
+                        ->label(__('Overschrijf bestaande alt teksten'))
                         ->default(false),
                 ])
                 ->action(function ($data): void {
                     if (! Ai::default(AiCapability::Vision)) {
                         Notification::make()
-                            ->title('Geen AI provider met vision capability beschikbaar')
+                            ->title(__('Geen AI provider met vision capability beschikbaar'))
                             ->danger()
                             ->send();
 
@@ -278,29 +278,29 @@ class AiSettingsPage extends Page implements HasSchemas
                     CreateAltTextsForAllMediaItems::dispatch($data['overwriteExisting'] ?? false);
 
                     Notification::make()
-                        ->title('Alt teksten worden gegenereerd')
+                        ->title(__('Alt teksten worden gegenereerd'))
                         ->success()
                         ->send();
                 }),
 
             Action::make('bulk_generate_meta')
-                ->label('Genereer meta voor alle modellen')
+                ->label(__('Genereer meta voor alle modellen'))
                 ->icon('heroicon-o-sparkles')
                 ->color('primary')
                 ->visible(fn () => Ai::hasProvider() && class_exists(BulkGenerateMetaJob::class))
-                ->modalHeading('Meta genereren voor alle modellen')
-                ->modalDescription('AI genereert voor elk geselecteerd model een meta-titel en meta-omschrijving in elke taal. De feitelijke generatie loopt op de achtergrond, per record.')
-                ->modalSubmitActionLabel('Start genereren')
+                ->modalHeading(__('Meta genereren voor alle modellen'))
+                ->modalDescription(__('AI genereert voor elk geselecteerd model een meta-titel en meta-omschrijving in elke taal. De feitelijke generatie loopt op de achtergrond, per record.'))
+                ->modalSubmitActionLabel(__('Start genereren'))
                 ->schema([
                     Toggle::make('overwrite')
-                        ->label('Overschrijf bestaande meta titels/beschrijvingen')
+                        ->label(__('Overschrijf bestaande meta titels/beschrijvingen'))
                         ->default(false),
                     Textarea::make('user_instruction')
-                        ->label('Optionele instructie')
-                        ->placeholder('Bijv. nadruk op lokale SEO of een specifiek keyword.')
+                        ->label(__('Optionele instructie'))
+                        ->placeholder(__('Bijv. nadruk op lokale SEO of een specifiek keyword.'))
                         ->rows(3),
                     Select::make('models')
-                        ->label('Welke modellen')
+                        ->label(__('Welke modellen'))
                         ->multiple()
                         ->options(function (): array {
                             try {
@@ -329,7 +329,7 @@ class AiSettingsPage extends Page implements HasSchemas
                 ->action(function (array $data): void {
                     if (! class_exists(BulkGenerateMetaJob::class)) {
                         Notification::make()
-                            ->title('dashed-marketing is niet geïnstalleerd')
+                            ->title(__('dashed-marketing is niet geïnstalleerd'))
                             ->danger()
                             ->send();
 
@@ -339,7 +339,7 @@ class AiSettingsPage extends Page implements HasSchemas
                     $models = array_values(array_filter((array) ($data['models'] ?? []), 'is_string'));
                     if ($models === []) {
                         Notification::make()
-                            ->title('Kies minimaal één model')
+                            ->title(__('Kies minimaal één model'))
                             ->danger()
                             ->send();
 
@@ -352,8 +352,8 @@ class AiSettingsPage extends Page implements HasSchemas
                     BulkGenerateMetaJob::dispatch($models, $instruction, $overwrite);
 
                     Notification::make()
-                        ->title('Bulk meta-generatie gestart')
-                        ->body('De jobs worden op de achtergrond afgevuurd, per record. Houd de queue-monitor in de gaten.')
+                        ->title(__('Bulk meta-generatie gestart'))
+                        ->body(__('De jobs worden op de achtergrond afgevuurd, per record. Houd de queue-monitor in de gaten.'))
                         ->success()
                         ->send();
                 }),
