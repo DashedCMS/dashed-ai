@@ -21,7 +21,8 @@ class DashedAiServiceProvider extends PackageServiceProvider
                 CreateAltTextsCommand::class,
                 RefreshToneOfVoiceBriefCommand::class,
             ])
-            ->name(self::$name);
+            ->name(self::$name)
+            ->hasTranslations();
     }
 
     public function registeringPackage(): void
