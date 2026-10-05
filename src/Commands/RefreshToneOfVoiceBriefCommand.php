@@ -4,6 +4,7 @@ namespace Dashed\DashedAi\Commands;
 
 use Carbon\Carbon;
 use Illuminate\Console\Command;
+use Dashed\DashedAi\Facades\Ai;
 use Dashed\DashedCore\Classes\Sites;
 use Dashed\DashedCore\Models\Customsetting;
 use Dashed\DashedAi\Jobs\GenerateToneOfVoiceBriefJob;
@@ -22,6 +23,12 @@ class RefreshToneOfVoiceBriefCommand extends Command
     public function handle(): int
     {
         $force = (bool) $this->option('force');
+
+        if (! Ai::hasProvider()) {
+            $this->line('Geen AI-provider gekoppeld, er wordt niets gedispatched.');
+
+            return self::SUCCESS;
+        }
 
         $sites = [];
         if (class_exists(Sites::class) && method_exists(Sites::class, 'getSites')) {

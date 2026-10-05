@@ -2,6 +2,11 @@
 
 All notable changes to `dashed-ai` will be documented in this file.
 
+## Unreleased
+
+### Fixed
+- **Tone-of-voice Brief zonder gekoppelde AI-provider.** De dagelijkse command dispatcht dan niets meer en de job stopt zonder exception. Een mislukte poging wordt niet langer dubbel gerapporteerd.
+
 ## v4.2.0 - 2026-05-11
 
 ### Removed

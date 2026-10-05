@@ -4,6 +4,7 @@ namespace Dashed\DashedAi\Jobs;
 
 use Throwable;
 use Illuminate\Bus\Queueable;
+use Dashed\DashedAi\Facades\Ai;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -38,27 +39,23 @@ class GenerateToneOfVoiceBriefJob implements ShouldQueue
 
     public function handle(): void
     {
-        try {
-            app(ToneOfVoiceBriefGenerator::class)->run($this->siteId);
-        } catch (Throwable $e) {
-            Log::warning('GenerateToneOfVoiceBriefJob faalde', [
+        // Zonder gekoppelde AI-provider valt er niets te genereren. Dat is geen fout:
+        // de job gooide dan elke dag drie pogingen lang een exception.
+        if (! Ai::hasProvider()) {
+            Log::info('GenerateToneOfVoiceBriefJob overgeslagen: geen AI-provider gekoppeld', [
                 'site_id' => $this->siteId,
-                'error' => $e->getMessage(),
             ]);
 
-            report($e);
-
-            throw $e;
+            return;
         }
+
+        // Geen eigen report() hier: de queue-worker rapporteert een mislukte poging al,
+        // en failed() doet dat na de laatste poging.
+        app(ToneOfVoiceBriefGenerator::class)->run($this->siteId);
     }
 
     public function failed(Throwable $e): void
     {
-        Log::error('GenerateToneOfVoiceBriefJob definitief mislukt', [
-            'site_id' => $this->siteId,
-            'error' => $e->getMessage(),
-        ]);
-
         $this->reportFailure($e);
     }
 }
