@@ -2,10 +2,18 @@
 
 All notable changes to `dashed-ai` will be documented in this file.
 
-## Unreleased
+## v4.7.0 - 2026-10-19
 
 ### Fixed
 - **Tone-of-voice Brief zonder gekoppelde AI-provider.** De dagelijkse command dispatcht dan niets meer en de job stopt zonder exception. Een mislukte poging wordt niet langer dubbel gerapporteerd.
+
+### Added
+- **AI-logboek.** Elke aanroep van Claude, OpenAI, Fal.ai en DeepL komt in `dashed__ai_logs` (`AiLog`): provider, model, soort, functie (expliciet `purpose` in de opties, anders de aanroepende klasse), gebruiker, site, duur, tokens (ook cache), eenheden (afbeeldingen, megapixels, tekens), geschatte kosten in USD en de prompt en het antwoord. Scherm Systeem, AI-logboek (`AiLogResource`, recht `view_ai_log`) met filters, een somregel en een kostenwidget (vandaag, deze maand, vorige maand, aanroepen, budget). `AiLogger::begin()` / `AiCallLog` voor providers, `FalRequest::post()` voor fal.run.
+- **Prijstabel** in `config/dashed-ai.php` onder `pricing`, in USD per miljoen tokens of per eenheid, gevonden op de langste prefix van de modelnaam; een onbekend model krijgt geen kosten (null) in plaats van nul.
+- **Maandbudget.** Instelling bij Instellingen, AI: bij 80% en 100% van het bedrag gaat één keer per maand `AiBudgetAlertMail` naar de factuurmeldingsadressen, anders de superadmins. Aanroepen gaan door.
+- **Instellingen** voor het logboek: prompt en antwoord bewaren (standaard aan), inkorten boven een aantal tekens (standaard 20.000) en de koers USD naar EUR voor de weergave.
+- **Bewaartermijn** `ai_logs` (standaard 365 dagen) in het retentieregister.
+
 
 ## v4.2.0 - 2026-05-11
 

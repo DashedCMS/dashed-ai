@@ -2,7 +2,12 @@
 
 namespace Dashed\DashedAi;
 
+use Dashed\DashedAi\Models\AiLog;
+use Illuminate\Support\Facades\Gate;
 use Spatie\LaravelPackageTools\Package;
+use Dashed\DashedCore\Retention\Termijn;
+use Dashed\DashedAi\Policies\AiLogPolicy;
+use Dashed\DashedCore\Retention\Retention;
 use Illuminate\Console\Scheduling\Schedule;
 use Dashed\DashedAi\Commands\CreateAltTextsCommand;
 use Spatie\LaravelPackageTools\PackageServiceProvider;
@@ -21,6 +26,10 @@ class DashedAiServiceProvider extends PackageServiceProvider
                 CreateAltTextsCommand::class,
                 RefreshToneOfVoiceBriefCommand::class,
             ])
+            ->hasMigrations([
+                '2026_10_19_120000_create_dashed__ai_logs_table',
+            ])
+            ->runsMigrations()
             ->name(self::$name)
             ->hasTranslations();
     }
@@ -32,6 +41,14 @@ class DashedAiServiceProvider extends PackageServiceProvider
 
     public function bootingPackage(): void
     {
+        Gate::policy(AiLog::class, AiLogPolicy::class);
+
+        cms()->registerRolePermissions('AI', [
+            'view_ai_log' => 'AI-logboek bekijken',
+        ]);
+
+        static::registreerBewaartermijnen();
+
         if (method_exists(cms(), 'registerIntegration')) {
             cms()->registerIntegration([
                 'slug' => 'ai_fal',
@@ -115,5 +132,29 @@ MARKDOWN,
                 ->daily()
                 ->withoutOverlapping();
         });
+    }
+
+    /**
+     * Het AI-logboek groeit met elke aanroep; een jaar is genoeg om de kosten
+     * van een maand met die van vorig jaar te vergelijken. Eigen methode zodat
+     * een test het register kan legen en opnieuw vullen.
+     */
+    public static function registreerBewaartermijnen(): void
+    {
+        if (! class_exists(Retention::class) || ! method_exists(cms(), 'registerRetention')) {
+            return;
+        }
+
+        cms()->registerRetention(
+            Retention::make('ai_logs')
+                ->label(__('AI-logboek'))
+                ->pakket('dashed-ai', __('AI'))
+                ->tabel('dashed__ai_logs')
+                ->termijn(
+                    Termijn::make('ai_logs', 365, 'created_at')
+                        ->label(__('AI-logboek bewaren (dagen)'))
+                        ->uitleg(__('Elke aanroep van Claude, OpenAI, Fal.ai en DeepL, met tokens, kosten, prompt en antwoord. Standaard: 365 dagen.'))
+                )
+        );
     }
 }

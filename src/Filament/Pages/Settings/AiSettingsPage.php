@@ -15,12 +15,14 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
+use Dashed\DashedAi\Logging\AiLogSettings;
 use Filament\Schemas\Contracts\HasSchemas;
 use Dashed\DashedCore\Models\Customsetting;
 use Filament\Infolists\Components\TextEntry;
 use Dashed\DashedCore\Traits\HasSettingsPermission;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Dashed\DashedMarketing\Jobs\BulkGenerateMetaJob;
+use Dashed\DashedAi\Filament\Resources\AiLogResource;
 use Dashed\DashedAi\Jobs\GenerateToneOfVoiceBriefJob;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
 use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
@@ -48,6 +50,10 @@ class AiSettingsPage extends Page implements HasSchemas
             'ai_tone_of_voice_brief' => Customsetting::get('ai_tone_of_voice_brief'),
             'ai_tone_of_voice_brief_manual_override' => Customsetting::get('ai_tone_of_voice_brief_manual_override'),
             'ai_tone_of_voice_max_age_days' => (int) Customsetting::get('ai_tone_of_voice_max_age_days', null, 30),
+            'ai_log_store_content' => AiLogSettings::storeContent(),
+            'ai_log_max_content_chars' => AiLogSettings::maxContentChars(),
+            'ai_usd_eur_rate' => AiLogSettings::usdEurRate(),
+            'ai_monthly_budget_usd' => AiLogSettings::monthlyBudgetUsd() ?: null,
         ];
 
         $manager = app(AiManager::class);
@@ -108,6 +114,33 @@ class AiSettingsPage extends Page implements HasSchemas
                         ->default(30)
                         ->helperText(__('Daily-scheduler ververst de Brief wanneer hij ouder is dan dit aantal dagen.')),
                 ]),
+
+            Section::make(__('Logboek en kosten'))
+                ->description(__('Elke aanroep van Claude, OpenAI, Fal.ai en DeepL komt in het AI-logboek (Systeem, AI-logboek) met tokens, duur en geschatte kosten. De kosten komen uit de prijstabel in config/dashed-ai.php en zijn een schatting, niet de factuur van de provider.'))
+                ->schema([
+                    Toggle::make('ai_log_store_content')
+                        ->label(__('Prompt en antwoord bewaren'))
+                        ->helperText(__('Uit: alleen cijfers en context (provider, model, functie, gebruiker, tokens, kosten). Aan: ook de volledige tekst die naar de AI ging en terugkwam.')),
+                    TextInput::make('ai_log_max_content_chars')
+                        ->label(__('Prompt en antwoord inkorten boven (tekens)'))
+                        ->numeric()
+                        ->minValue(500)
+                        ->default(20000),
+                    TextInput::make('ai_usd_eur_rate')
+                        ->label(__('Koers USD naar EUR'))
+                        ->numeric()
+                        ->step(0.0001)
+                        ->minValue(0.01)
+                        ->default(0.92)
+                        ->helperText(__('De providers factureren in dollars; met deze koers toont het logboek het bedrag ook in euro.')),
+                    TextInput::make('ai_monthly_budget_usd')
+                        ->label(__('Maandbudget (USD)'))
+                        ->numeric()
+                        ->minValue(0)
+                        ->placeholder(__('Leeg = geen bewaking'))
+                        ->helperText(__('Bij 80% en bij 100% van dit bedrag gaat er één keer per maand een mail naar de beheerders (de factuurmeldingsadressen, anders alle superadmins). Aanroepen gaan gewoon door.')),
+                ])
+                ->columns(2),
 
             Section::make(__('Afbeelding generatie (Fal.ai)'))
                 ->description(__('Zodra hier een Fal.ai API sleutel staat, verschijnt er bij elk afbeelding-veld in de CMS een "Genereer met AI" knop. Met een referentieafbeelding wordt nano-banana/edit gebruikt, zonder referentie flux/dev.'))
@@ -181,6 +214,10 @@ class AiSettingsPage extends Page implements HasSchemas
             Customsetting::set('fal_api_key', $formData['fal_api_key'] ?? null, $site['id']);
             Customsetting::set('ai_tone_of_voice_brief_manual_override', $formData['ai_tone_of_voice_brief_manual_override'] ?? null, $site['id']);
             Customsetting::set('ai_tone_of_voice_max_age_days', (int) ($formData['ai_tone_of_voice_max_age_days'] ?? 30), $site['id']);
+            Customsetting::set('ai_log_store_content', (bool) ($formData['ai_log_store_content'] ?? true), $site['id']);
+            Customsetting::set('ai_log_max_content_chars', (int) ($formData['ai_log_max_content_chars'] ?? 20000), $site['id']);
+            Customsetting::set('ai_usd_eur_rate', (string) ($formData['ai_usd_eur_rate'] ?? '0.92'), $site['id']);
+            Customsetting::set('ai_monthly_budget_usd', $formData['ai_monthly_budget_usd'] !== null && $formData['ai_monthly_budget_usd'] !== '' ? (string) $formData['ai_monthly_budget_usd'] : null, $site['id']);
 
             foreach ($manager->providers() as $provider) {
                 foreach ($provider->settingsSchema() as $component) {
@@ -205,6 +242,11 @@ class AiSettingsPage extends Page implements HasSchemas
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('openAiLog')
+                ->label(__('AI-logboek'))
+                ->icon('heroicon-o-cpu-chip')
+                ->color('gray')
+                ->url(fn (): string => AiLogResource::getUrl()),
             Action::make('refreshToneOfVoiceBrief')
                 ->label(__('Vernieuw tone-of-voice Brief'))
                 ->icon('heroicon-o-arrow-path')

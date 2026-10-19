@@ -4,6 +4,7 @@ namespace Dashed\DashedAi;
 
 use Filament\Panel;
 use Filament\Contracts\Plugin;
+use Dashed\DashedAi\Filament\Resources\AiLogResource;
 use Dashed\DashedAi\Filament\Pages\Settings\AiSettingsPage;
 
 class DashedAiPlugin implements Plugin
@@ -15,9 +16,13 @@ class DashedAiPlugin implements Plugin
 
     public function register(Panel $panel): void
     {
-        $panel->pages([
-            AiSettingsPage::class,
-        ]);
+        $panel
+            ->pages([
+                AiSettingsPage::class,
+            ])
+            ->resources([
+                AiLogResource::class,
+            ]);
     }
 
     public function boot(Panel $panel): void
