@@ -18,6 +18,7 @@ use Dashed\DashedAi\Logging\AiLogSettings;
 use Filament\Tables\Columns\Summarizers\Sum;
 use Dashed\DashedAi\Filament\Resources\AiLogResource\Pages\ViewAiLog;
 use Dashed\DashedAi\Filament\Resources\AiLogResource\Pages\ListAiLogs;
+use Dashed\DashedAi\Filament\Resources\AiLogResource\Widgets\AiCostStats;
 
 /**
  * Het AI-logboek: elke aanroep van een externe AI-dienst met verbruik en
@@ -229,6 +230,19 @@ class AiLogResource extends Resource
         return [
             'index' => ListAiLogs::route('/'),
             'view' => ViewAiLog::route('/{record}'),
+        ];
+    }
+
+    /**
+     * Alleen hier registreert Filament een widget als Livewire-component.
+     * Zonder deze registratie rendert de lijst nog, maar laat het lui laden
+     * van de widget de pagina eindeloos herladen (zie
+     * ResourceWidgetRegistrationGuardTest in de root).
+     */
+    public static function getWidgets(): array
+    {
+        return [
+            AiCostStats::class,
         ];
     }
 }

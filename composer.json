@@ -13,7 +13,7 @@
     ],
     "require": {
         "php": "^8.4",
-        "dashed/dashed-core": "*",
+        "dashed/dashed-core": "^4.80",
         "spatie/laravel-package-tools": "^1.16"
     },
     "require-dev": {
