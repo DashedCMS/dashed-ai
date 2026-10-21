@@ -2,6 +2,12 @@
 
 All notable changes to `dashed-ai` will be documented in this file.
 
+## v4.8.0 - 2026-10-21
+
+### Changed
+- **Tone-of-voice brief in de system-prompt in plaats van in het bericht.** `Ai::text()`, `Ai::json()` en `Ai::vision()` plakten de brief (al snel 2500 tokens) vóór elke prompt in het gebruikersbericht, waardoor hij nooit gecachet kon worden en bij elke losse aanroep (meta-titels, omschrijvingen) opnieuw volledig werd betaald. De brief gaat nu als optie `tone_of_voice` naar de provider, die hem via `AiProvider::systemPromptParts()` in het stabiele deel van de system-prompt zet (na de huisstijlregels, vóór de `system`-optie van de caller). Met een brief staat `cache` standaard aan; uitzetten kan met `['cache' => false]`. Providers met prompt caching (dashed-claude 4.6+) zetten het breakpoint na dat stabiele deel.
+- `AiProvider::buildSystemPrompt()` bouwt de string nu uit `systemPromptParts()`; het resultaat voor providers zonder caching (OpenAI) is dezelfde tekst, met de brief erin.
+
 ## v4.7.0 - 2026-10-19
 
 ### Fixed

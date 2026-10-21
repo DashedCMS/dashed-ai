@@ -56,25 +56,48 @@ abstract class AiProvider
         return in_array($capability, $this->supportedCapabilities(), true);
     }
 
-    protected function buildSystemPrompt(array $options = []): string
+    /**
+     * De system-prompt in twee delen. `stable` is voor elke aanroep van een
+     * site hetzelfde: de huisstijlregels en de tone-of-voice brief (optie
+     * `tone_of_voice`, gezet door AiManager). `task` is de system-prompt die de
+     * caller meegeeft (optie `system`) en kan per aanroep verschillen.
+     *
+     * Providers met prompt caching zetten het cache-breakpoint na `stable`,
+     * zodat de brief (al snel 2500 tokens) maar één keer per cache-periode
+     * volledig wordt betaald in plaats van bij elke aanroep.
+     *
+     * @return array{stable: string, task: string}
+     */
+    protected function systemPromptParts(array $options = []): array
     {
-        $disableBrandRules = (bool) ($options['disable_brand_rules'] ?? false);
-        $system = $options['system'] ?? '';
-
-        $parts = [];
-        if (! $disableBrandRules) {
-            $parts[] = "## Globale regels\n".
+        $stable = [];
+        if (! ($options['disable_brand_rules'] ?? false)) {
+            $stable[] = "## Globale regels\n".
                 "- Gebruik NOOIT em-dashes (-). Gebruik een punt, komma of haakjes.\n".
                 "- Gebruik geen AI-clichés (\"duik in\", \"ontdek de geheimen\", \"in een notendop\").\n".
                 "- Schrijf actief en in de \"je\"-vorm.\n".
                 "- Wanneer een JSON-antwoord wordt gevraagd met HTML erin: gebruik ENKELE quotes voor HTML-attributen (bijv. <a href='/url'>) zodat de JSON valide blijft.\n".
                 "- Retourneer bij JSON-verzoeken UITSLUITEND geldig JSON zonder markdown code fences.";
         }
-        if ($system) {
-            $parts[] = $system;
+
+        $brief = trim((string) ($options['tone_of_voice'] ?? ''));
+        if ($brief !== '') {
+            $stable[] = "## Tone of voice (intern, gebruik dit als briefing voor de schrijftaak in het bericht)\n\n" . $brief;
         }
 
-        return trim(implode("\n\n", $parts));
+        return [
+            'stable' => trim(implode("\n\n", $stable)),
+            'task' => trim((string) ($options['system'] ?? '')),
+        ];
+    }
+
+    /**
+     * De volledige system-prompt als één string, voor providers zonder
+     * prompt caching per blok.
+     */
+    protected function buildSystemPrompt(array $options = []): string
+    {
+        return trim(implode("\n\n", array_filter($this->systemPromptParts($options), fn (string $part) => $part !== '')));
     }
 
     protected function parseJsonResponse(?string $text): ?array

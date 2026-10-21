@@ -37,21 +37,21 @@ class AiManager
 
     public function text(string $prompt, array $options = []): ?string
     {
-        $prompt = $this->prependToneOfVoice($prompt, $options);
+        $options = $this->withToneOfVoice($options);
 
         return $this->default(AiCapability::Text)?->text($prompt, $options);
     }
 
     public function json(string $prompt, array $options = []): ?array
     {
-        $prompt = $this->prependToneOfVoice($prompt, $options);
+        $options = $this->withToneOfVoice($options);
 
         return $this->default(AiCapability::Json)?->json($prompt, $options);
     }
 
     public function vision(string $prompt, string $imageData, string $mimeType, array $options = []): ?string
     {
-        $prompt = $this->prependToneOfVoice($prompt, $options);
+        $options = $this->withToneOfVoice($options);
 
         return $this->default(AiCapability::Vision)?->vision($prompt, $imageData, $mimeType, $options);
     }
@@ -109,26 +109,31 @@ class AiManager
     }
 
     /**
-     * Tone-of-voice middleware: prepent (indien aanwezig) de gegenereerde of
-     * handmatig overschreven Brief als context-prefix aan het prompt. De caller
-     * kan dit uitschakelen met `['skip_tone_of_voice' => true]` (gebruikt door
-     * de generator zelf om recursie te voorkomen).
+     * Tone-of-voice middleware: geeft (indien aanwezig) de gegenereerde of
+     * handmatig overschreven Brief mee als `tone_of_voice`-optie. De provider
+     * zet hem in de system-prompt (zie AiProvider::systemPromptParts()), niet
+     * in het bericht: zo is de brief voor elke aanroep van een site hetzelfde
+     * stuk prefix en kan de provider hem cachen. Daarom staat `cache` hier
+     * standaard aan; de caller kan het uitzetten met `['cache' => false]`.
+     *
+     * De caller kan de brief zelf uitschakelen met `['skip_tone_of_voice' => true]`
+     * (gebruikt door de generator zelf om recursie te voorkomen).
      */
-    protected function prependToneOfVoice(string $prompt, array $options): string
+    protected function withToneOfVoice(array $options): array
     {
         if (($options['skip_tone_of_voice'] ?? false) === true) {
-            return $prompt;
+            return $options;
         }
 
         $brief = $this->resolveToneOfVoiceBrief();
         if ($brief === null) {
-            return $prompt;
+            return $options;
         }
 
-        return "## Tone of voice (intern, gebruik dit als briefing voor de schrijftaak hieronder)\n\n"
-            . $brief
-            . "\n\n---\n\n## Schrijftaak\n\n"
-            . $prompt;
+        $options['tone_of_voice'] = $brief;
+        $options['cache'] ??= true;
+
+        return $options;
     }
 
     /**
