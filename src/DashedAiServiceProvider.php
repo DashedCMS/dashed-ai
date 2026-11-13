@@ -43,6 +43,13 @@ class DashedAiServiceProvider extends PackageServiceProvider
     {
         Gate::policy(AiLog::class, AiLogPolicy::class);
 
+        // Het plafond van AiManager::withHttpTimeout(); zonder plafond geeft hij alles ongewijzigd door.
+        if (method_exists(\Illuminate\Http\Client\Factory::class, 'globalMiddleware')) {
+            \Illuminate\Support\Facades\Http::globalMiddleware(AiManager::httpTimeoutMiddleware());
+        }
+
+        static::listenForIngestedMedia();
+
         cms()->registerRolePermissions('AI', [
             'view_ai_log' => 'AI-logboek bekijken',
         ]);
@@ -156,5 +163,48 @@ MARKDOWN,
                         ->uitleg(__('Elke aanroep van Claude, OpenAI, Fal.ai en DeepL, met tokens, kosten, prompt en antwoord. Standaard: 365 dagen.'))
                 )
         );
+    }
+
+    /**
+     * De schakelaar "alt-tekst bij nieuwe uploads" werd nergens gelezen. De
+     * inname van dashed-files meldt elke nieuwe rasterafbeelding; hier start
+     * de alt-teksttaak als de schakelaar aan staat.
+     */
+    public static function listenForIngestedMedia(): void
+    {
+        $event = 'Dashed\\DashedFiles\\Events\\MediaIngested';
+
+        if (! class_exists($event)) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\Event::listen($event, function (object $ingested): void {
+            // Alleen wat een mens één voor één aanlevert (het beheer, de app).
+            // Een import van duizenden foto's mag geen duizenden AI-aanroepen
+            // worden, en een chatbijlage is van een bezoeker en gaat niet naar
+            // een provider. Een nieuwe bron doet dus pas mee als hij hier staat.
+            if (! in_array($ingested->source, ['upload', 'api'], true)) {
+                return;
+            }
+
+            // Een oudere dashed-files kent geen teksten per taal (de taak zou
+            // niets doen), en wat beschermd is (de mappen `chat` en `orders`)
+            // gaat nooit naar de provider, ook niet als een beheerder het uploadt.
+            if (! \Dashed\DashedAi\Media\MediaVision::maySend($ingested->item)) {
+                return;
+            }
+
+            // Al in elke taal een alt-tekst: dan valt er niets te doen.
+            if ($ingested->item->missingAltLocales() === []) {
+                return;
+            }
+
+            if (! \Dashed\DashedCore\Models\Customsetting::get('create_alt_text_for_new_uploaded_images')) {
+                return;
+            }
+
+            // Eén taak, die alle talen van de site in één aanroep vult.
+            \Dashed\DashedAi\Jobs\GenerateMediaAltText::dispatch((int) $ingested->item->id);
+        });
     }
 }

@@ -4,6 +4,15 @@ return [
     'default_provider' => null,
 
     /*
+     * De mediabibliotheek. Elke alt-tekst is een betaalde AI-aanroep: de
+     * bulkronde ("Genereer alt teksten voor alle afbeeldingen") zet per keer
+     * hooguit dit aantal afbeeldingen klaar; de rest komt in een volgende ronde.
+     */
+    'media' => [
+        'alt_text_bulk_max' => 500,
+    ],
+
+    /*
      * Logboek van AI-aanroepen. Elke aanroep van Claude, OpenAI, Fal.ai en
      * DeepL wordt vastgelegd in dashed__ai_logs met verbruik en geschatte
      * kosten. De schakelaars hieronder zijn de terugval; de instellingen bij

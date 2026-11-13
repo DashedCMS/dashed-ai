@@ -10,6 +10,54 @@ class AiManager
     /** @var array<string, AiProvider> */
     protected array $providers = [];
 
+    /** De hoogste HTTP-time-out binnen withHttpTimeout(), in seconden; null is die van de provider. */
+    private static ?int $httpTimeoutCap = null;
+
+    /**
+     * Voert $call uit met een plafond op de HTTP-time-out van elke aanroep
+     * erin. Voor een wachtrijtaak: de providers zetten zelf 120 s, en een
+     * taak moet binnen de standaard retry_after van 90 seconden klaar zijn.
+     * Het plafond werkt via httpTimeoutMiddleware(), dus voor elke provider
+     * die de HTTP-client van Laravel gebruikt.
+     */
+    public static function withHttpTimeout(int $seconds, callable $call): mixed
+    {
+        $previous = self::$httpTimeoutCap;
+        self::$httpTimeoutCap = max(1, $seconds);
+
+        try {
+            return $call();
+        } finally {
+            self::$httpTimeoutCap = $previous;
+        }
+    }
+
+    public static function httpTimeoutCap(): ?int
+    {
+        return self::$httpTimeoutCap;
+    }
+
+    /**
+     * Guzzle-middleware die de time-out van een verzoek begrenst zolang er
+     * een plafond staat. Daarbuiten raakt hij niets aan.
+     */
+    public static function httpTimeoutMiddleware(): callable
+    {
+        return fn (callable $handler) => function ($request, array $options) use ($handler) {
+            $cap = self::$httpTimeoutCap;
+
+            if ($cap !== null) {
+                foreach (['timeout', 'connect_timeout'] as $key) {
+                    $current = (float) ($options[$key] ?? 0);
+                    // 0 is in Guzzle "geen grens".
+                    $options[$key] = $current > 0 ? min($current, $cap) : $cap;
+                }
+            }
+
+            return $handler($request, $options);
+        };
+    }
+
     public function register(AiProvider $provider): void
     {
         $this->providers[$provider->name()] = $provider;

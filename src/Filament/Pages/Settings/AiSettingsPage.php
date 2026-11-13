@@ -25,7 +25,7 @@ use Dashed\DashedMarketing\Jobs\BulkGenerateMetaJob;
 use Dashed\DashedAi\Filament\Resources\AiLogResource;
 use Dashed\DashedAi\Jobs\GenerateToneOfVoiceBriefJob;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
-use RalphJSmit\Filament\MediaLibrary\Models\MediaLibraryItem;
+use Dashed\DashedFiles\Models\MediaItem;
 
 class AiSettingsPage extends Page implements HasSchemas
 {
@@ -88,7 +88,7 @@ class AiSettingsPage extends Page implements HasSchemas
                         ->helperText(__('Als deze niet beschikbaar is, wordt automatisch een andere verbonden provider gebruikt.')),
                     Toggle::make('create_alt_text_for_new_uploaded_images')
                         ->label(__('Automatisch alt-teksten genereren voor nieuwe uploads'))
-                        ->helperText(__('Gebruikt de vision-capability van de actieve AI provider. Werkt alleen voor Nederlands.')),
+                        ->helperText(__('Let op: elke afbeelding die iemand in het beheer of de app uploadt is dan één betaalde AI-aanroep (vision), die de alt-tekst in elke taal van de site in één keer vult. Imports, afbeeldingen via een url en bijlagen uit de chat doen niet mee. Staat dit aan, dan loopt het verbruik mee met het aantal uploads; zie het AI-logboek.')),
                 ]),
 
             Section::make(__('Tone-of-voice Brief'))
@@ -294,22 +294,24 @@ class AiSettingsPage extends Page implements HasSchemas
                 ->label(__('Genereer alt teksten voor alle afbeeldingen'))
                 ->icon('heroicon-o-photo')
                 ->color('primary')
-                ->visible(fn () => Ai::default(AiCapability::Vision) !== null)
+                // Met een oudere dashed-files (zonder teksten per taal) is er niets te doen.
+                ->visible(fn () => Ai::default(AiCapability::Vision) !== null && \Dashed\DashedAi\Media\MediaVision::available())
                 ->schema([
                     TextEntry::make('info')
                         ->label('')
-                        ->state(function (): string {
-                            $total = MediaLibraryItem::whereHas('media', fn ($q) => $q->whereIn('mime_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']))->count();
-                            $missing = MediaLibraryItem::whereNull('alt_text')->whereHas('media', fn ($q) => $q->whereIn('mime_type', ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']))->count();
-
-                            return "Er zijn {$total} afbeeldingen waarvan {$missing} nog geen alt tekst hebben.";
-                        }),
+                        ->state(fn (): string => static::altTextBulkInfo()),
                     Toggle::make('overwriteExisting')
                         ->label(__('Overschrijf bestaande alt teksten'))
+                        ->helperText(__('Er wordt vooraf niets gewist: een bestaande alt-tekst wordt pas vervangen als de AI voor die afbeelding en die taal een bruikbare tekst teruggeeft. Ook handgeschreven alt-teksten worden vervangen.'))
                         ->default(false),
                 ])
-                ->action(function ($data): void {
-                    if (! Ai::default(AiCapability::Vision)) {
+                ->extraModalFooterActions(fn (Action $action): array => static::altTextGivenUpCount() > 0 ? [
+                    $action->makeModalSubmitAction('retryGivenUp', arguments: ['retry' => true])
+                        ->label(__('Opnieuw proberen (:count)', ['count' => static::altTextGivenUpCount()]))
+                        ->color('gray'),
+                ] : [])
+                ->action(function ($data, array $arguments): void {
+                    if (! Ai::default(AiCapability::Vision) || ! \Dashed\DashedAi\Media\MediaVision::available()) {
                         Notification::make()
                             ->title(__('Geen AI provider met vision capability beschikbaar'))
                             ->danger()
@@ -318,10 +320,26 @@ class AiSettingsPage extends Page implements HasSchemas
                         return;
                     }
 
-                    CreateAltTextsForAllMediaItems::dispatch($data['overwriteExisting'] ?? false);
+                    if ($arguments['retry'] ?? false) {
+                        $count = static::retryGivenUpAltTexts();
+
+                        Notification::make()
+                            ->title(__('Voor :count afbeeldingen mag de AI het opnieuw proberen', ['count' => $count]))
+                            ->body(__('Ze doen weer mee in de volgende ronde.'))
+                            ->success()
+                            ->send();
+
+                        return;
+                    }
+
+                    $overwrite = (bool) ($data['overwriteExisting'] ?? false);
+                    $preview = CreateAltTextsForAllMediaItems::preview($overwrite);
+
+                    CreateAltTextsForAllMediaItems::dispatch($overwrite);
 
                     Notification::make()
                         ->title(__('Alt teksten worden gegenereerd'))
+                        ->body(__('Deze ronde: :now afbeeldingen.', ['now' => $preview['now']]) . ($preview['remaining'] > 0 ? ' ' . __(':rest blijven over voor een volgende ronde.', ['rest' => $preview['remaining']]) : ''))
                         ->success()
                         ->send();
                 }),
@@ -401,5 +419,55 @@ class AiSettingsPage extends Page implements HasSchemas
                         ->send();
                 }),
         ];
+    }
+
+    /**
+     * De tekst boven de knop: hoeveel er deze ronde gedaan worden en hoeveel
+     * er overblijven, zonder en met overschrijven, en waar de AI het opgaf.
+     */
+    public static function altTextBulkInfo(): string
+    {
+        if (! \Dashed\DashedAi\Media\MediaVision::available()) {
+            return '';
+        }
+
+        $max = CreateAltTextsForAllMediaItems::maxPerRun();
+        $fill = CreateAltTextsForAllMediaItems::preview(false);
+        $overwrite = CreateAltTextsForAllMediaItems::preview(true);
+        $givenUp = static::altTextGivenUpCount();
+
+        $rest = fn (int $remaining): string => $remaining > 0 ? ' ' . __(':rest blijven over voor een volgende ronde.', ['rest' => $remaining]) : '';
+
+        $lines = [
+            __('Elke afbeelding (jpg, png, webp) is één betaalde AI-aanroep, voor alle talen tegelijk. Per ronde hooguit :max. Bijlagen uit de chat en bij bestellingen gaan nooit naar de AI.', ['max' => $max]),
+            __('Zonder overschrijven: deze ronde :now afbeeldingen die in minstens één taal geen alt-tekst hebben.', ['now' => $fill['now']]) . $rest($fill['remaining']),
+            __('Met overschrijven: deze ronde :now afbeeldingen, ook die al een alt-tekst hebben.', ['now' => $overwrite['now']]) . $rest($overwrite['remaining'])
+                . ($overwrite['resumed'] ? ' ' . __('Dit gaat verder waar de vorige ronde stopte.') : ''),
+        ];
+
+        if ($givenUp > 0) {
+            $lines[] = __('Bij :count afbeeldingen kon de AI na drie pogingen geen alt-tekst maken; die doen niet meer mee tot je "Opnieuw proberen" kiest.', ['count' => $givenUp]);
+        }
+
+        return implode(' ', $lines);
+    }
+
+    public static function altTextGivenUpCount(): int
+    {
+        return \Dashed\DashedAi\Media\MediaVision::available()
+            ? (int) rescue(fn () => CreateAltTextsForAllMediaItems::givenUpQuery()->count(), 0, false)
+            : 0;
+    }
+
+    /** Zet de teller terug voor elke afbeelding waar de AI het opgaf. */
+    public static function retryGivenUpAltTexts(): int
+    {
+        if (! \Dashed\DashedAi\Media\MediaVision::available()) {
+            return 0;
+        }
+
+        $ids = CreateAltTextsForAllMediaItems::givenUpQuery()->limit(5000)->pluck('id')->all();
+
+        return $ids === [] ? 0 : app(\Dashed\DashedFiles\Classes\MediaLibrary::class)->resetAltTries($ids);
     }
 }
