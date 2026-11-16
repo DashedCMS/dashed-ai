@@ -5,6 +5,7 @@ namespace Dashed\DashedAi\Models;
 use Dashed\DashedCore\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
@@ -32,6 +33,8 @@ class AiLog extends Model
         'units' => 'float',
         'cost_usd' => 'float',
         'duration_ms' => 'integer',
+        'estimated' => 'boolean',
+        'subject_id' => 'integer',
         'options' => 'array',
         'created_at' => 'datetime',
     ];
@@ -39,6 +42,19 @@ class AiLog extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** Het model waar deze aanroep voor gedaan is (aanvraag, ontwerp, order), indien gekoppeld. */
+    public function subject(): MorphTo
+    {
+        return $this->morphTo();
+    }
+
+    public function scopeForSubject(Builder $query, Model $subject): Builder
+    {
+        return $query
+            ->where('subject_type', $subject->getMorphClass())
+            ->where('subject_id', $subject->getKey());
     }
 
     public function scopeInMonth(Builder $query, ?\DateTimeInterface $moment = null): Builder

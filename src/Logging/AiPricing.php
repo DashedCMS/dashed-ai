@@ -12,8 +12,80 @@ class AiPricing
     /** @return array<string, float|string>|null */
     public static function priceFor(string $provider, ?string $model): ?array
     {
-        $table = (array) config("dashed-ai.pricing.{$provider}", []);
-        if ($table === [] || $model === null || $model === '') {
+        return self::lookup(
+            AiLogSettings::pricingOverrides(),
+            (array) config("dashed-ai.pricing.{$provider}", []),
+            $provider,
+            $model,
+        );
+    }
+
+    /**
+     * Zoekt de prijs: eerst in de overschrijvingen uit het CMS (exact, dan
+     * langste prefix), daarna in de tabel uit de config (idem).
+     *
+     * @param  array<int, array<string, mixed>>  $overrides  rijen uit Instellingen, AI, Prijzen
+     * @param  array<string, mixed>  $configTable  config('dashed-ai.pricing.<provider>')
+     * @return array<string, float|string>|null
+     */
+    public static function lookup(array $overrides, array $configTable, string $provider, ?string $model): ?array
+    {
+        if ($model === null || $model === '') {
+            return null;
+        }
+
+        $fromOverrides = self::matchModel(self::overrideTable($overrides, $provider), $model);
+        if ($fromOverrides !== null) {
+            return $fromOverrides;
+        }
+
+        return self::matchModel($configTable, $model);
+    }
+
+    /**
+     * Zet de repeater-rijen om naar een tabel model => prijs voor één provider.
+     * Lege velden tellen niet mee, zodat een rij alleen de ingevulde prijzen
+     * overschrijft.
+     *
+     * @return array<string, array<string, float|string>>
+     */
+    public static function overrideTable(array $overrides, string $provider): array
+    {
+        $table = [];
+        foreach ($overrides as $row) {
+            if (! is_array($row) || ($row['provider'] ?? null) !== $provider) {
+                continue;
+            }
+            $model = trim((string) ($row['model'] ?? ''));
+            if ($model === '') {
+                continue;
+            }
+
+            $price = [];
+            foreach (['input', 'output', 'cache_read', 'cache_write', 'per_unit'] as $field) {
+                $value = $row[$field] ?? null;
+                if ($value === null || $value === '') {
+                    continue;
+                }
+                $price[$field] = (float) str_replace(',', '.', (string) $value);
+            }
+            if ($price === []) {
+                continue;
+            }
+            if (isset($price['per_unit'])) {
+                $price['unit'] = (string) (($row['unit'] ?? null) ?: 'unit');
+            }
+
+            $table[$model] = $price;
+        }
+
+        return $table;
+    }
+
+    /** @return array<string, float|string>|null */
+    protected static function matchModel(array $table, string $model): ?array
+    {
+        if ($table === []) {
             return null;
         }
 

@@ -9,6 +9,7 @@ use Dashed\DashedAi\AiManager;
 use Dashed\DashedAi\Facades\Ai;
 use Dashed\DashedCore\Classes\Sites;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Toggle;
 use Dashed\DashedAi\Enums\AiCapability;
 use Filament\Forms\Components\Textarea;
@@ -52,6 +53,7 @@ class AiSettingsPage extends Page implements HasSchemas
             'ai_log_store_content' => AiLogSettings::storeContent(),
             'ai_log_max_content_chars' => AiLogSettings::maxContentChars(),
             'ai_usd_eur_rate' => AiLogSettings::usdEurRate(),
+            'ai_pricing_overrides' => AiLogSettings::pricingOverrides(),
             'ai_monthly_budget_usd' => AiLogSettings::monthlyBudgetUsd() ?: null,
         ];
 
@@ -141,6 +143,40 @@ class AiSettingsPage extends Page implements HasSchemas
                 ])
                 ->columns(2),
 
+            Section::make(__('Prijzen'))
+                ->description(__('Overschrijf of vul de prijstabel aan voor een nieuw model of een prijswijziging. Prijzen in USD per miljoen tokens, of per eenheid (afbeelding, megapixel). Een rij geldt voor het model met exact deze naam en voor modellen die ermee beginnen; de langste naam wint. Zonder rij geldt de standaardtabel.'))
+                ->schema([
+                    Repeater::make('ai_pricing_overrides')
+                        ->label(__('Prijsoverschrijvingen'))
+                        ->addActionLabel(__('Prijs toevoegen'))
+                        ->defaultItems(0)
+                        ->columns(4)
+                        ->schema([
+                            Select::make('provider')
+                                ->label(__('Provider'))
+                                ->options(\Dashed\DashedAi\Models\AiLog::providerLabels())
+                                ->required(),
+                            TextInput::make('model')
+                                ->label(__('Model'))
+                                ->placeholder('claude-sonnet-5-5')
+                                ->required()
+                                ->columnSpan(3),
+                            TextInput::make('input')->label(__('Input per 1M'))->numeric(),
+                            TextInput::make('output')->label(__('Output per 1M'))->numeric(),
+                            TextInput::make('cache_read')->label(__('Cache lezen per 1M'))->numeric(),
+                            TextInput::make('cache_write')->label(__('Cache schrijven per 1M'))->numeric(),
+                            TextInput::make('per_unit')->label(__('Per eenheid'))->numeric(),
+                            Select::make('unit')
+                                ->label(__('Eenheid'))
+                                ->options([
+                                    'image' => __('Afbeelding'),
+                                    'megapixel' => __('Megapixel'),
+                                    'million_characters' => __('Miljoen tekens'),
+                                    'unit' => __('Stuk'),
+                                ]),
+                        ]),
+                ]),
+
             Section::make(__('Afbeelding generatie (Fal.ai)'))
                 ->description(__('Zodra hier een Fal.ai API sleutel staat, verschijnt er bij elk afbeelding-veld in de CMS een "Genereer met AI" knop. Met een referentieafbeelding wordt nano-banana/edit gebruikt, zonder referentie flux/dev.'))
                 ->schema([
@@ -216,6 +252,7 @@ class AiSettingsPage extends Page implements HasSchemas
             Customsetting::set('ai_log_store_content', (bool) ($formData['ai_log_store_content'] ?? true), $site['id']);
             Customsetting::set('ai_log_max_content_chars', (int) ($formData['ai_log_max_content_chars'] ?? 20000), $site['id']);
             Customsetting::set('ai_usd_eur_rate', (string) ($formData['ai_usd_eur_rate'] ?? '0.92'), $site['id']);
+            Customsetting::set('ai_pricing_overrides', array_values((array) ($formData['ai_pricing_overrides'] ?? [])), $site['id']);
             Customsetting::set('ai_monthly_budget_usd', $formData['ai_monthly_budget_usd'] !== null && $formData['ai_monthly_budget_usd'] !== '' ? (string) $formData['ai_monthly_budget_usd'] : null, $site['id']);
 
             foreach ($manager->providers() as $provider) {

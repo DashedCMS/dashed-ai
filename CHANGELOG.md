@@ -2,6 +2,15 @@
 
 All notable changes to `dashed-ai` will be documented in this file.
 
+## v4.11.0 - 2026-11-16
+
+### Added
+- **AI-kosten per aanvraag.** Een logrij kan nu aan een model gekoppeld worden (`subject_type`/`subject_id`, `AiLog::subject()`, scope `forSubject()`), gegroepeerd worden met een `batch`-sleutel en als `estimated` (geschat) gemarkeerd worden. Migratie `add_subject_to_dashed__ai_logs_table` is idempotent.
+- `AiLogger::within(['subject' => $model, 'purpose' => ..., 'batch' => ...], fn () => ...)`: elke AI-aanroep binnen de callback (ook `FalRequest::post()`) krijgt die context automatisch; binnenste frame wint, expliciete context gaat voor het frame.
+- `AiLogger::record($provider, $kind, $data)` schrijft een afgeronde rij voor diensten buiten de providers (fal-wachtrij, Tripo, Places), met kosten via `AiPricing` als `cost_usd` ontbreekt en een optionele `created_at` voor nabeschrijving. `AiLogger::linkBatch($batch, $model)` koppelt eerder gelogde rijen alsnog.
+- **Prijzen in het CMS.** Instellingen, AI, Prijzen: overschrijvingen per provider en model (`ai_pricing_overrides`) gaan voor op de config-tabel (exact, dan langste prefix). Prijzen toegevoegd voor claude-haiku-5-5, claude-sonnet-5-5, claude-opus-5-5 en fal-ai/nano-banana-pro/edit.
+- AI-logboek: kolom "Gekoppeld aan", filter gekoppeld/niet gekoppeld en een badge "geschat".
+
 ## v4.10.0 - 2026-11-16
 
 ### Added

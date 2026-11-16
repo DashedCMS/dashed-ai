@@ -44,6 +44,9 @@ return [
      */
     'pricing' => [
         'claude' => [
+            'claude-opus-5-5' => ['input' => 4.00, 'output' => 20.00, 'cache_read' => 0.20, 'cache_write' => 5.00],
+            'claude-sonnet-5-5' => ['input' => 2.00, 'output' => 10.00, 'cache_read' => 0.10, 'cache_write' => 2.50],
+            'claude-haiku-5-5' => ['input' => 0.10, 'output' => 0.50, 'cache_read' => 0.01, 'cache_write' => 0.125],
             'claude-opus-4-7' => ['input' => 5.00, 'output' => 25.00, 'cache_read' => 0.50, 'cache_write' => 6.25],
             'claude-opus-4-6' => ['input' => 5.00, 'output' => 25.00, 'cache_read' => 0.50, 'cache_write' => 6.25],
             'claude-opus-4-5' => ['input' => 5.00, 'output' => 25.00, 'cache_read' => 0.50, 'cache_write' => 6.25],
@@ -67,6 +70,7 @@ return [
             // flux/dev en clarity-upscaler rekenen per megapixel van de uitvoer.
             'fal-ai/flux/dev' => ['per_unit' => 0.025, 'unit' => 'megapixel'],
             'fal-ai/clarity-upscaler' => ['per_unit' => 0.03, 'unit' => 'megapixel'],
+            'fal-ai/nano-banana-pro/edit' => ['per_unit' => 0.15, 'unit' => 'image'],
             'fal-ai/nano-banana/edit' => ['per_unit' => 0.039, 'unit' => 'image'],
             'fal-ai/birefnet' => ['per_unit' => 0.002, 'unit' => 'image'],
         ],

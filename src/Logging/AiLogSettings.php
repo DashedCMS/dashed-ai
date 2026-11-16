@@ -35,6 +35,22 @@ class AiLogSettings
         return $value > 0 ? $value : (float) config('dashed-ai.log.usd_eur_rate', 0.92);
     }
 
+    /**
+     * Prijsoverschrijvingen uit Instellingen, AI, Prijzen (Customsetting
+     * ai_pricing_overrides, json). Altijd een lijst rijen; nooit een fout.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function pricingOverrides(): array
+    {
+        $value = self::setting('ai_pricing_overrides');
+        if (is_string($value)) {
+            $value = json_decode($value, true);
+        }
+
+        return is_array($value) ? array_values(array_filter($value, 'is_array')) : [];
+    }
+
     /** 0 betekent: geen budgetbewaking. */
     public static function monthlyBudgetUsd(): float
     {

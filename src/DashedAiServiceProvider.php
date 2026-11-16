@@ -28,6 +28,7 @@ class DashedAiServiceProvider extends PackageServiceProvider
             ])
             ->hasMigrations([
                 '2026_10_19_120000_create_dashed__ai_logs_table',
+                '2026_11_16_120000_add_subject_to_dashed__ai_logs_table',
             ])
             ->runsMigrations()
             ->name(self::$name)

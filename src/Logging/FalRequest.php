@@ -28,6 +28,9 @@ class FalRequest
             'options' => array_diff_key($payload, ['prompt' => 1]) + ['endpoint' => $endpoint],
             'site_id' => $context['site_id'] ?? null,
             'purpose' => $context['purpose'] ?? null,
+            // Zonder eigen waarden pakt begin() het frame van AiLogger::within().
+            'subject' => $context['subject'] ?? null,
+            'batch' => $context['batch'] ?? null,
         ]);
 
         try {

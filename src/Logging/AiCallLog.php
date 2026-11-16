@@ -39,6 +39,9 @@ class AiCallLog
         protected ?string $purpose,
         protected ?string $caller,
         protected int|string|null $userId,
+        protected ?string $subjectType = null,
+        protected int|string|null $subjectId = null,
+        protected ?string $batch = null,
     ) {
         $this->startedAt = microtime(true);
     }
@@ -125,6 +128,9 @@ class AiCallLog
                 'kind' => $this->kind,
                 'purpose' => $this->purpose ? mb_substr($this->purpose, 0, 255) : null,
                 'caller' => $this->caller ? mb_substr($this->caller, 0, 255) : null,
+                'subject_type' => $this->subjectType,
+                'subject_id' => is_numeric($this->subjectId) ? (int) $this->subjectId : null,
+                'batch' => $this->batch ? mb_substr($this->batch, 0, 64) : null,
                 'status' => $status,
                 'input_tokens' => $this->inputTokens,
                 'output_tokens' => $this->outputTokens,

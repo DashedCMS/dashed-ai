@@ -67,6 +67,26 @@ class AiLogResource extends Resource
         return false;
     }
 
+    /** "HuisdierurnAanvraag #12", of het eigen nummer van het model als dat er is. */
+    public static function subjectLabel(AiLog $record): ?string
+    {
+        if (! $record->subject_type || ! $record->subject_id) {
+            return null;
+        }
+
+        $subject = rescue(fn () => $record->subject, null, false);
+        if ($subject) {
+            foreach (['nummer', 'ontwerpnummer'] as $attribute) {
+                $value = $subject->getAttribute($attribute);
+                if ($value !== null && $value !== '') {
+                    return class_basename($subject) . ' ' . $value;
+                }
+            }
+        }
+
+        return class_basename($subject ?? $record->subject_type) . ' #' . $record->subject_id;
+    }
+
     public static function formatUsd(?float $amount): string
     {
         if ($amount === null) {
@@ -119,6 +139,17 @@ class AiLogResource extends Resource
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query->where(fn (Builder $q) => $q
                         ->where('purpose', 'like', "%{$search}%")
                         ->orWhere('caller', 'like', "%{$search}%"))),
+                TextColumn::make('subject_label')
+                    ->label(__('Gekoppeld aan'))
+                    ->placeholder('-')
+                    ->getStateUsing(fn (AiLog $record): ?string => self::subjectLabel($record))
+                    ->toggleable(),
+                TextColumn::make('estimated')
+                    ->label(__('Schatting'))
+                    ->badge()
+                    ->color('warning')
+                    ->getStateUsing(fn (AiLog $record): ?string => $record->estimated ? __('geschat') : null)
+                    ->toggleable(),
                 TextColumn::make('user.name')
                     ->label(__('Gebruiker'))
                     ->placeholder(__('Systeem'))
@@ -185,6 +216,14 @@ class AiLogResource extends Resource
                     ->query(fn (Builder $query, array $data): Builder => empty($data['values'])
                         ? $query
                         : $query->where(fn (Builder $q) => $q->whereIn('purpose', $data['values'])->orWhereIn('caller', $data['values']))),
+                SelectFilter::make('gekoppeld')
+                    ->label(__('Gekoppeld aan een aanvraag'))
+                    ->options(['ja' => __('Gekoppeld'), 'nee' => __('Niet gekoppeld')])
+                    ->query(fn (Builder $query, array $data): Builder => match ($data['value'] ?? null) {
+                        'ja' => $query->whereNotNull('subject_type'),
+                        'nee' => $query->whereNull('subject_type'),
+                        default => $query,
+                    }),
                 SelectFilter::make('user_id')
                     ->label(__('Gebruiker'))
                     ->relationship('user', 'email')
