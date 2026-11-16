@@ -25,7 +25,6 @@ use Dashed\DashedMarketing\Jobs\BulkGenerateMetaJob;
 use Dashed\DashedAi\Filament\Resources\AiLogResource;
 use Dashed\DashedAi\Jobs\GenerateToneOfVoiceBriefJob;
 use Dashed\DashedAi\Jobs\CreateAltTextsForAllMediaItems;
-use Dashed\DashedFiles\Models\MediaItem;
 
 class AiSettingsPage extends Page implements HasSchemas
 {
@@ -257,7 +256,7 @@ class AiSettingsPage extends Page implements HasSchemas
                 ->modalDescription(__('AI analyseert pages, artikelen en producten van deze site en bouwt een complete tone-of-voice Brief volgens de 9-onderdelen-briefing. Bestaande gegenereerde Brief wordt overschreven; een handmatige override blijft staan.'))
                 ->modalSubmitActionLabel(__('Vernieuw nu'))
                 ->action(function (): void {
-                    GenerateToneOfVoiceBriefJob::dispatch();
+                    GenerateToneOfVoiceBriefJob::dispatch(null, auth()->id());
 
                     Notification::make()
                         ->title(__('Brief wordt op de achtergrond gegenereerd'))
@@ -335,7 +334,7 @@ class AiSettingsPage extends Page implements HasSchemas
                     $overwrite = (bool) ($data['overwriteExisting'] ?? false);
                     $preview = CreateAltTextsForAllMediaItems::preview($overwrite);
 
-                    CreateAltTextsForAllMediaItems::dispatch($overwrite);
+                    CreateAltTextsForAllMediaItems::dispatch($overwrite, auth()->id());
 
                     Notification::make()
                         ->title(__('Alt teksten worden gegenereerd'))
@@ -410,7 +409,9 @@ class AiSettingsPage extends Page implements HasSchemas
                     $instruction = ! empty($data['user_instruction']) ? (string) $data['user_instruction'] : null;
                     $overwrite = (bool) ($data['overwrite'] ?? false);
 
-                    BulkGenerateMetaJob::dispatch($models, $instruction, $overwrite);
+                    // Positioneel en niet als benoemd argument: een oudere
+                    // dashed-marketing zonder $userId negeert het dan gewoon.
+                    BulkGenerateMetaJob::dispatch($models, $instruction, $overwrite, auth()->id());
 
                     Notification::make()
                         ->title(__('Bulk meta-generatie gestart'))

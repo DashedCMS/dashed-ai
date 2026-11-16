@@ -6,6 +6,7 @@ use Throwable;
 use Illuminate\Bus\Queueable;
 use Dashed\DashedAi\AiManager;
 use Dashed\DashedAi\Facades\Ai;
+use Dashed\DashedAi\Media\MediaTask;
 use Dashed\DashedAi\Media\MediaVision;
 use Dashed\DashedAi\Enums\AiCapability;
 use Dashed\DashedFiles\Models\MediaItem;
@@ -71,7 +72,29 @@ class GenerateMediaAltText implements ShouldBeUnique, ShouldQueue
         return 'generate-media-alt-text-' . $this->itemId;
     }
 
+    /**
+     * De taak van een hele ronde in het takenicoon van het CMS (zie
+     * MediaTask); null bij een losse afbeelding. Een eigenschap en geen
+     * constructorargument, zodat aanroepers niets hoeven te veranderen.
+     */
+    public ?int $taskId = null;
+
     public function handle(): void
+    {
+        $this->generate();
+
+        // Pas na afloop en niet in een finally: klapt de job eruit, dan telt
+        // failed() hem.
+        MediaTask::advance($this->taskId);
+    }
+
+    /** Ook een afbeelding die stukliep telt als afgehandeld, anders blijft de ronde op bezig staan. */
+    public function failed(?Throwable $e = null): void
+    {
+        MediaTask::advance($this->taskId);
+    }
+
+    private function generate(): void
     {
         // Een oudere dashed-files kent geen teksten per taal: dan niets doen.
         if (! MediaVision::available()) {

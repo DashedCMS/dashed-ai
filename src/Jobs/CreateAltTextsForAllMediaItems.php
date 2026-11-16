@@ -4,14 +4,15 @@ namespace Dashed\DashedAi\Jobs;
 
 use Illuminate\Bus\Queueable;
 use Dashed\DashedAi\Facades\Ai;
-use Dashed\DashedCore\Classes\Sites;
 use Illuminate\Support\Facades\Log;
+use Dashed\DashedAi\Media\MediaTask;
+use Dashed\DashedCore\Classes\Sites;
 use Dashed\DashedAi\Media\MediaVision;
 use Illuminate\Queue\SerializesModels;
 use Dashed\DashedAi\Enums\AiCapability;
 use Dashed\DashedFiles\Models\MediaItem;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Dashed\DashedCore\Models\Customsetting;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -55,7 +56,11 @@ class CreateAltTextsForAllMediaItems implements ShouldBeUnique, ShouldQueue
 
     public int $remaining = 0;
 
-    public function __construct(public bool $overwriteExisting = false)
+    /**
+     * $userId is de beheerder die de ronde in het CMS startte, voor het
+     * takenicoon; null vanuit het commando.
+     */
+    public function __construct(public bool $overwriteExisting = false, public ?int $userId = null)
     {
     }
 
@@ -158,24 +163,41 @@ class CreateAltTextsForAllMediaItems implements ShouldBeUnique, ShouldQueue
 
         $total = ($overwrite ? self::overwriteQuery() : self::pendingQuery())->count();
         $queued = 0;
+        $tracked = 0;
         $last = 0;
         $started = microtime(true);
 
-        // Alleen id's, in porties: nooit de hele tabel in het geheugen.
-        ($overwrite ? self::overwriteQuery() : self::pendingQuery())->select('id')->toBase()->chunkById(200, function ($rows) use (&$queued, &$last, $max, $overwrite, $started) {
-            foreach ($rows as $row) {
-                if ($queued >= $max || microtime(true) - $started > self::BUDGET_SECONDS) {
-                    return false;
+        // Eén taak in het takenicoon van het CMS voor de hele ronde; elke job
+        // per afbeelding telt zichzelf af. Het totaal is eerst een schatting,
+        // na het klaarzetten het echte aantal.
+        $taskId = MediaTask::begin(__('Alt teksten genereren'), min($total, $max), $this->userId);
+
+        try {
+            // Alleen id's, in porties: nooit de hele tabel in het geheugen.
+            ($overwrite ? self::overwriteQuery() : self::pendingQuery())->select('id')->toBase()->chunkById(200, function ($rows) use (&$queued, &$tracked, &$last, $max, $overwrite, $started, $taskId) {
+                foreach ($rows as $row) {
+                    if ($queued >= $max || microtime(true) - $started > self::BUDGET_SECONDS) {
+                        return false;
+                    }
+
+                    // Gespreid, zodat de provider niet in één klap alles krijgt.
+                    // Wat al in de wachtrij stond (het unieke slot) telt niet
+                    // voor de taak, wel voor het plafond, zoals voorheen.
+                    if (MediaTask::dispatch(new GenerateMediaAltText((int) $row->id, null, $overwrite), $taskId, now()->addSeconds($queued * 3))) {
+                        $tracked++;
+                    }
+
+                    $queued++;
+                    $last = (int) $row->id;
                 }
 
-                // Gespreid, zodat de provider niet in één klap alles krijgt.
-                GenerateMediaAltText::dispatch((int) $row->id, null, $overwrite)->delay(now()->addSeconds($queued * 3));
-                $queued++;
-                $last = (int) $row->id;
-            }
-
-            return $queued < $max && microtime(true) - $started <= self::BUDGET_SECONDS;
-        });
+                return $queued < $max && microtime(true) - $started <= self::BUDGET_SECONDS;
+            });
+        } finally {
+            // Ook als het klaarzetten halverwege stukloopt: de taak wacht dan
+            // alleen op wat er al in de wachtrij staat.
+            MediaTask::settle($taskId, $tracked);
+        }
 
         $this->queued = $queued;
         $this->remaining = max(0, $total - $queued);

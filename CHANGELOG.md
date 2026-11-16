@@ -2,6 +2,13 @@
 
 All notable changes to `dashed-ai` will be documented in this file.
 
+## v4.10.0 - 2026-11-16
+
+### Added
+- Het taakcentrum (het tabje Bezig) toont nu alt-teksten en tags genereren, per item en in bulk, als één taak per reeks via `MediaTask`, en het opstellen van de tone-of-voice-briefing.
+- Een job met een unieke lock die overgeslagen wordt telt mee als afgerond, zodat een reeks niet eeuwig op bezig blijft staan.
+- Meta genereren voor alle modellen vanuit Instellingen, AI geeft de beheerder mee, zodat de taak bij hem in de lijst staat.
+
 ## v4.8.0 - 2026-10-21
 
 ### Changed
